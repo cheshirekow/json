@@ -171,7 +171,7 @@ int main(int argc, char** argv) {
   argue::Parser parser({.add_help = true,
                         .add_version = true,
                         .name = "json in C++",
-                        .version = {0, 0, 1},
+                        .version = JJSON_VERSION,
                         .author = "Josh Bialkowski <josh.bialkowski@gmail.com>",
                         .copyright = "(C) 2018",
                         .prolog = kProlog});

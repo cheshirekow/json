@@ -33,4 +33,3 @@ target_link_libraries(json-macro_test gtest gtest_main json)
 add_test(NAME json-macro_test
          COMMAND json-macro_test
          WORKING_DIRECTORY ${CMAKE_SOURCE_DIR})
-

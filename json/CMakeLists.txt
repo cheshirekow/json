@@ -8,11 +8,12 @@ set(json_sources
     variant.cc)
 
 add_library(json STATIC ${json_sources})
-target_link_libraries(json re2)
+target_link_libraries(json PUBLIC fmt re2)
+target_pkg_depends(json libglog)
 
-add_executable(json.exe main.cc)
-target_link_libraries(json.exe argue json)
-set_target_properties(json.exe PROPERTIES OUTPUT_NAME json)
+add_executable(jjson.exe main.cc)
+target_link_libraries(jjson.exe PUBLIC argue json)
+set_target_properties(jjson.exe PROPERTIES OUTPUT_NAME jjson)
 
 set(json_files
     builder.h
@@ -20,32 +21,19 @@ set(json_files
     json.h
     pipeline.h
     stream.h
+    stream_tpl.h
     stream_std.h
+    stream_std_tpl.h
     stream_macros.h
+    stream_tpl.h
     variant.h
     ${json_sources})
 
-add_custom_command(OUTPUT ${CMAKE_CURRENT_BINARY_DIR}/json_format.stamp
-                   COMMAND clang-format -style file -i ${json_files}
-                   COMMAND python -Bm cmake_format -i CMakeLists.txt
-                           doc/CMakeLists.txt test/CMakeLists.txt
-                   COMMAND touch ${CMAKE_CURRENT_BINARY_DIR}/json_format.stamp
-                   DEPENDS ${json_files}
-                   WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR})
-add_custom_target(json_format
-                  DEPENDS ${CMAKE_CURRENT_BINARY_DIR}/json_format.stamp)
-add_dependencies(format json_format)
-
-add_custom_command(OUTPUT ${CMAKE_CURRENT_BINARY_DIR}/json_lint.stamp
-                   COMMAND cpplint ${json_files}
-                   COMMAND touch ${CMAKE_CURRENT_BINARY_DIR}/json_lint.stamp
-                   DEPENDS ${json_files}
-                   WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR})
-add_custom_target(json_lint DEPENDS ${CMAKE_CURRENT_BINARY_DIR}/json_lint.stamp)
-
-# NOTE(josh): format before lint-check, avoid formatting lint
-add_dependencies(json_lint json_format)
-add_dependencies(lint json_lint)
+format_and_lint(json
+                ${json_files}
+                CMakeLists.txt
+                doc/CMakeLists.txt
+                test/CMakeLists.txt)
 
 add_subdirectory(test)
 add_subdirectory(doc)

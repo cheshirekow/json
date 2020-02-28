@@ -5,104 +5,211 @@
 // Begin: Ugly Macro Implementation Details
 // ----------------------------------------------------------------------------
 
-/// Takes each argument 'x' and generates a sequence of pairs of stringified
-/// token to address, i.e.
-/// JSON_ADDRMAP(x, y, z) -> "x", &x, "y", &y, "z", &z
-#define JSON_ADDRMAP(...) JSON_ADDRMAP_(__VA_ARGS__, JSON_ADDRFILL())
+// NOTE(josh): inspired by https://stackoverflow.com/a/11640759/141023
 
-/// One layer of indirection, presumably to unify all the commas?
-#define JSON_ADDRMAP_(...) JSON_ADDRMAP_TRUNC(__VA_ARGS__)
+// Defer concat of two tokens through one layer of macro indirection so that
+// arguments are expanded before they are concatenated.
+// See https://gcc.gnu.org/onlinedocs/gcc-2.95.3/cpp_1.html#SEC26
+#define JSON_PRIMITIVE_CAT(a, ...) a##__VA_ARGS__
+#define JSON_CAT(a, ...) JSON_PRIMITIVE_CAT(a, __VA_ARGS__)
 
-// clang-format off
-/// Truncate the list of arguments to only the first. We support at maximum 100
-/// arguments.
-#define JSON_ADDRMAP_TRUNC(\
-    _00, _01, _02, _03, _04, _05, _06, _07, _08, _09, \
-    _10, _11, _12, _13, _14, _15, _16, _17, _18, _19, \
-    _20, _21, _22, _23, _24, _25, _26, _27, _28, _29, \
-    _30, _31, _32, _33, _34, _35, _36, _37, _38, _39, \
-    _40, _41, _42, _43, _44, _45, _46, _47, _48, _49, \
-    _50, _51, _52, _53, _54, _55, _56, _57, _58, _59, \
-    _60, _61, _62, _63, _64, _65, _66, _67, _68, _69, \
-    _70, _71, _72, _73, _74, _75, _76, _77, _78, _79, \
-    _80, _81, _82, _83, _84, _85, _86, _87, _88, _89, \
-    _90, _91, _92, _93, _94, _95, _96, _97, _98, _99, \
-    ...) \
-#_00, &_00, #_01, &_01, #_02, &_02, #_03, &_03, #_04, &_04, \
-#_05, &_05, #_06, &_06, #_07, &_07, #_08, &_08, #_09, &_09, \
-#_10, &_10, #_11, &_11, #_12, &_12, #_13, &_13, #_14, &_14, \
-#_15, &_15, #_16, &_16, #_17, &_17, #_18, &_18, #_19, &_19, \
-#_20, &_20, #_21, &_21, #_22, &_22, #_23, &_23, #_24, &_24, \
-#_25, &_25, #_26, &_26, #_27, &_27, #_28, &_28, #_29, &_29, \
-#_30, &_30, #_31, &_31, #_32, &_32, #_33, &_33, #_34, &_34, \
-#_35, &_35, #_36, &_36, #_37, &_37, #_38, &_38, #_39, &_39, \
-#_40, &_40, #_41, &_41, #_42, &_42, #_43, &_43, #_44, &_44, \
-#_45, &_45, #_46, &_46, #_47, &_47, #_48, &_48, #_49, &_49, \
-#_50, &_50, #_51, &_51, #_52, &_52, #_53, &_53, #_54, &_54, \
-#_55, &_55, #_56, &_56, #_57, &_57, #_58, &_58, #_59, &_59, \
-#_60, &_60, #_61, &_61, #_62, &_62, #_63, &_63, #_64, &_64, \
-#_65, &_65, #_66, &_66, #_67, &_67, #_68, &_68, #_69, &_69, \
-#_70, &_70, #_71, &_71, #_72, &_72, #_73, &_73, #_74, &_74, \
-#_75, &_75, #_76, &_76, #_77, &_77, #_78, &_78, #_79, &_79, \
-#_80, &_80, #_81, &_81, #_82, &_82, #_83, &_83, #_84, &_84, \
-#_85, &_85, #_86, &_86, #_87, &_87, #_88, &_88, #_89, &_89, \
-#_90, &_90, #_91, &_91, #_92, &_92, #_93, &_93, #_94, &_94, \
-#_95, &_95, #_96, &_96, #_97, &_97, #_98, &_98, #_99, &_99
-// clang-format on
+// Evaluates to the second argument
+#define JSON_TAKE_TWO_(x, n, ...) n
 
-/// Provide a bunch of extra initializers to fill out the rest of the map.
-#define JSON_ADDRFILL()                                                        \
-  kMacroPad, kMacroPad, kMacroPad, kMacroPad, kMacroPad, kMacroPad, kMacroPad, \
-      kMacroPad, kMacroPad, kMacroPad, kMacroPad, kMacroPad, kMacroPad,        \
-      kMacroPad, kMacroPad, kMacroPad, kMacroPad, kMacroPad, kMacroPad,        \
-      kMacroPad, kMacroPad, kMacroPad, kMacroPad, kMacroPad, kMacroPad,        \
-      kMacroPad, kMacroPad, kMacroPad, kMacroPad, kMacroPad, kMacroPad,        \
-      kMacroPad, kMacroPad, kMacroPad, kMacroPad, kMacroPad, kMacroPad,        \
-      kMacroPad, kMacroPad, kMacroPad, kMacroPad, kMacroPad, kMacroPad,        \
-      kMacroPad, kMacroPad, kMacroPad, kMacroPad, kMacroPad, kMacroPad,        \
-      kMacroPad, kMacroPad, kMacroPad, kMacroPad, kMacroPad, kMacroPad,        \
-      kMacroPad, kMacroPad, kMacroPad, kMacroPad, kMacroPad, kMacroPad,        \
-      kMacroPad, kMacroPad, kMacroPad, kMacroPad, kMacroPad, kMacroPad,        \
-      kMacroPad, kMacroPad, kMacroPad, kMacroPad, kMacroPad, kMacroPad,        \
-      kMacroPad, kMacroPad, kMacroPad, kMacroPad, kMacroPad, kMacroPad,        \
-      kMacroPad, kMacroPad, kMacroPad, kMacroPad, kMacroPad, kMacroPad,        \
-      kMacroPad, kMacroPad, kMacroPad, kMacroPad, kMacroPad, kMacroPad,        \
-      kMacroPad, kMacroPad, kMacroPad, kMacroPad, kMacroPad, kMacroPad,        \
-      kMacroPad, kMacroPad, kMacroPad
+// Evaluates to the second argument. Ensures that there are at least two
+// arguments by appending "0" to the argument list. If there was only one
+// argument, will evaluate to zero.
+#define JSON_TAKE_TWO(...) JSON_TAKE_TWO_(__VA_ARGS__, 0, )
 
-/// Implement parse-map construction for the given fields of the struct
-#define JSON_DEFPARSER(...)                                 \
-  void GetParseMap(json::stream::ParseMap* pmap) {          \
-    json::stream::FillMap(pmap, JSON_ADDRMAP(__VA_ARGS__)); \
+// Expands a single token into two tokens, the second being "1"
+#define JSON_PAD_ONE(x) x, 1,
+
+// Magic, see IS_PAREN for what this is doing. This is a macro which we will
+// use as a macro only in the case of a placeholder entry in the argument
+// list. The technique is described in
+// https://gcc.gnu.org/onlinedocs/gcc-2.95.3/cpp_1.html#SEC12
+#define JSON_PAREN_PROBE(...) JSON_PAD_ONE(~)
+
+// If x is a pair of parentheses (literally "()") then evaluates to 1. Otherwise
+// evaluates to 0.
+//
+// Expansion if the argument is a paren-pair is:
+//
+//  IS_PAREN(())
+//   => TAKE_TWO(PAREN_PROBE())
+//   => TAKE_TWO(PAD_ONE(~))
+//   => TAKE_TWO(~,1)
+//   => TAKE_TWO_(~,1,0)
+//   => 1
+//
+// If x is any other <token>, then the argument of TAKE_TWO will be
+// "IS_PAREN <token>". The expansion then is
+//
+// IS_PAREN(<token>)
+//  => TAKE_TWO(IS_PAREN <token>)
+//  => TAKE_TWO_(IS_PAREN <token>, 0)
+//  => 0
+#define JSON_IS_PAREN(x) JSON_TAKE_TWO(JSON_PAREN_PROBE x)
+
+// Our macro will expand cases for a fixed number of arguments. We will pad the
+// variable argument list with this extra token sequence.
+#define JSON_FILL() \
+  (), (), (), (), (), (), (), (), (), (), (), (), (), (), (), (), (), (), (), ()
+
+// This is the actual meat of the macro system: simply a case statement to
+// dispatch the appropriate parser for the given field (by name)
+#define JSON_CASE_IF_NOT_PAREN_0(key)     \
+  case Hash(#key):                        \
+    ParseValue(event, stream, &out->key); \
+    break;
+
+// This is the else-case for when the parameter is a placeholder
+#define JSON_CASE_IF_NOT_PAREN_1(key)
+
+// Evaluates to a case statement unless x is a placeholder in the form of
+// parenthesis: "()".
+#define JSON_CASE_IF_NOT_PAREN(x) \
+  JSON_CAT(JSON_CASE_IF_NOT_PAREN_, JSON_IS_PAREN(x))(x)
+
+// Generate a case statement for the first N elements in the list
+#define JSON_MAKE_CASES_N(_00, _01, _02, _03, _04, _05, _06, _07, _08, _09, \
+                          _10, _11, _12, _13, _14, _15, _16, _17, _18, _19, \
+                          ...)                                              \
+  JSON_CASE_IF_NOT_PAREN(_00)                                               \
+  JSON_CASE_IF_NOT_PAREN(_01)                                               \
+  JSON_CASE_IF_NOT_PAREN(_02)                                               \
+  JSON_CASE_IF_NOT_PAREN(_03)                                               \
+  JSON_CASE_IF_NOT_PAREN(_04)                                               \
+  JSON_CASE_IF_NOT_PAREN(_05)                                               \
+  JSON_CASE_IF_NOT_PAREN(_06)                                               \
+  JSON_CASE_IF_NOT_PAREN(_07)                                               \
+  JSON_CASE_IF_NOT_PAREN(_08)                                               \
+  JSON_CASE_IF_NOT_PAREN(_09)                                               \
+  JSON_CASE_IF_NOT_PAREN(_10)                                               \
+  JSON_CASE_IF_NOT_PAREN(_11)                                               \
+  JSON_CASE_IF_NOT_PAREN(_12)                                               \
+  JSON_CASE_IF_NOT_PAREN(_13)                                               \
+  JSON_CASE_IF_NOT_PAREN(_14)                                               \
+  JSON_CASE_IF_NOT_PAREN(_15)                                               \
+  JSON_CASE_IF_NOT_PAREN(_16)                                               \
+  JSON_CASE_IF_NOT_PAREN(_17)                                               \
+  JSON_CASE_IF_NOT_PAREN(_18)                                               \
+  JSON_CASE_IF_NOT_PAREN(_19)
+
+// One layer of macro indirectino, presumably to glue together to halfs of
+// the macro argument list
+#define JSON_MAKE_CASES_(...) JSON_MAKE_CASES_N(__VA_ARGS__)
+
+// Generate a case statement for each argument
+#define JSON_MAKE_CASES(...) JSON_MAKE_CASES_(__VA_ARGS__, JSON_FILL())
+
+#define JSON_EMIT_IF_NOT_PAREN_0(key) \
+  EmitField(#key, value.key, opts, depth, out);
+
+#define JSON_EMIT_IF_NOT_PAREN_1(key)
+#define JSON_EMIT_IF_NOT_PAREN(x) \
+  JSON_CAT(JSON_EMIT_IF_NOT_PAREN_, JSON_IS_PAREN(x))(x)
+
+#define JSON_EMIT_WSEP_IF_NOT_PAREN_0(key) \
+  EmitFieldSep(opts, out);                 \
+  EmitField(#key, value.key, opts, depth, out);
+
+#define JSON_EMIT_WSEP_IF_NOT_PAREN_1(key)
+#define JSON_EMIT_WSEP_IF_NOT_PAREN(x) \
+  JSON_CAT(JSON_EMIT_WSEP_IF_NOT_PAREN_, JSON_IS_PAREN(x))(x)
+
+#define JSON_MAKE_EMITS_N(_00, _01, _02, _03, _04, _05, _06, _07, _08, _09, \
+                          _10, _11, _12, _13, _14, _15, _16, _17, _18, _19, \
+                          ...)                                              \
+  JSON_EMIT_IF_NOT_PAREN(_00)                                               \
+  JSON_EMIT_WSEP_IF_NOT_PAREN(_01)                                          \
+  JSON_EMIT_WSEP_IF_NOT_PAREN(_02)                                          \
+  JSON_EMIT_WSEP_IF_NOT_PAREN(_03)                                          \
+  JSON_EMIT_WSEP_IF_NOT_PAREN(_04)                                          \
+  JSON_EMIT_WSEP_IF_NOT_PAREN(_05)                                          \
+  JSON_EMIT_WSEP_IF_NOT_PAREN(_06)                                          \
+  JSON_EMIT_WSEP_IF_NOT_PAREN(_07)                                          \
+  JSON_EMIT_WSEP_IF_NOT_PAREN(_08)                                          \
+  JSON_EMIT_WSEP_IF_NOT_PAREN(_09)                                          \
+  JSON_EMIT_WSEP_IF_NOT_PAREN(_10)                                          \
+  JSON_EMIT_WSEP_IF_NOT_PAREN(_11)                                          \
+  JSON_EMIT_WSEP_IF_NOT_PAREN(_12)                                          \
+  JSON_EMIT_WSEP_IF_NOT_PAREN(_13)                                          \
+  JSON_EMIT_WSEP_IF_NOT_PAREN(_14)                                          \
+  JSON_EMIT_WSEP_IF_NOT_PAREN(_15)                                          \
+  JSON_EMIT_WSEP_IF_NOT_PAREN(_16)                                          \
+  JSON_EMIT_WSEP_IF_NOT_PAREN(_17)                                          \
+  JSON_EMIT_WSEP_IF_NOT_PAREN(_18)                                          \
+  JSON_EMIT_WSEP_IF_NOT_PAREN(_19)                                          \
+  if (opts.indent) {                                                        \
+    (*out)("\n");                                                           \
   }
 
-/// Implement emit-map construction for the given fields of the struct
-#define JSON_DEFEMITTER(...)                                \
-  void GetEmitMap(json::stream::EmitMap* emap) const {      \
-    json::stream::FillMap(emap, JSON_ADDRMAP(__VA_ARGS__)); \
-  }
+#define JSON_MAKE_EMITS_(...) JSON_MAKE_EMITS_N(__VA_ARGS__)
+#define JSON_MAKE_EMITS(...) JSON_MAKE_EMITS_(__VA_ARGS__, JSON_FILL())
 
 // ----------------------------------------------------------------------------
 // End: Ugly Macro Implementation Details
 // ----------------------------------------------------------------------------
 
-/// Implement parse-map and emit-map getters for JSON-stream API
-/**
- * Usage:
- *
- * ```
- * struct MyObject {
- *   int a;
- *   float b;
- *   JSON_STREAM(a,b);
- * };
- * ```
- * Adds two member functions:
- * ```
- * void GetParseMap(json::ParseMap* pmap);
- * void GetEmitMap(json::EmitMap* emap);
- * ```
- */
-#define JSON_STREAM(...)       \
-  JSON_DEFPARSER(__VA_ARGS__); \
-  JSON_DEFEMITTER(__VA_ARGS__);
+#define JSON_DECLPARSE(OutType)                                           \
+  namespace json {                                                        \
+  namespace stream {                                                      \
+  int ParseField(const re2::StringPiece& key, const Event& event,         \
+                 LexerParser* stream, OutType* out);                      \
+  void ParseValue(const Event& event, LexerParser* stream, OutType* out); \
+  } /* namespace stream */                                                \
+  } /* namespace json */
+
+#define JSON_DEFNPARSE(OutType, ...)                                       \
+  namespace json {                                                         \
+  namespace stream {                                                       \
+  int ParseField(const re2::StringPiece& key, const Event& event,          \
+                 LexerParser* stream, OutType* out) {                      \
+    uint64_t keyid = RuntimeHash(key);                                     \
+    switch (keyid) {                                                       \
+      JSON_MAKE_CASES(__VA_ARGS__)                                         \
+      default:                                                             \
+        SinkValue(event, stream);                                          \
+        return 1;                                                          \
+    }                                                                      \
+    return 0;                                                              \
+  }                                                                        \
+                                                                           \
+  void ParseValue(const Event& event, LexerParser* stream, OutType* out) { \
+    ParseObject(event, stream, out);                                       \
+  }                                                                        \
+  } /* namespace stream */                                                 \
+  } /* namespace json */
+
+#define JSON_DECL(OutType) \
+  JSON_DECLPARSE(OutType)  \
+  JSON_DECLEMIT(OutType)
+
+#define JSON_DECLEMIT(OutType)                                    \
+  namespace json {                                                \
+  namespace stream {                                              \
+  void EmitValue(const OutType& value, const SerializeOpts& opts, \
+                 size_t depth, BufPrinter* out);                  \
+  } /* namespace stream */                                        \
+  } /* namespace json */
+
+#define JSON_DEFNEMIT(OutType, ...)                               \
+  namespace json {                                                \
+  namespace stream {                                              \
+  void EmitValue(const OutType& value, const SerializeOpts& opts, \
+                 size_t depth, BufPrinter* out) {                 \
+    (*out)("{");                                                  \
+    if (opts.indent) {                                            \
+      (*out)("\n");                                               \
+    }                                                             \
+    JSON_MAKE_EMITS(__VA_ARGS__);                                 \
+    FmtIndent(out, opts.indent, depth);                           \
+    (*out)("}");                                                  \
+  }                                                               \
+  } /* namespace stream */                                        \
+  } /* namespace json */
+
+#define JSON_DEFN(OutType, ...)        \
+  JSON_DEFNPARSE(OutType, __VA_ARGS__) \
+  JSON_DEFNEMIT(OutType, __VA_ARGS__)

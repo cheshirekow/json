@@ -26,3 +26,10 @@ v0.1.1
 ====================
 
 * Implemented subparser support
+
+v0.1.2
+====================
+
+* Add support for "--version" and "--help" without the corresponding short flag
+  (i.e. no "-v" or "-h")
+* Add macro shims to work with gcc which doesn't support designated initializers

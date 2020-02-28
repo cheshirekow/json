@@ -3,11 +3,20 @@ project(cheshirekow)
 enable_testing()
 set(CMAKE_EXPORT_COMPILE_COMMANDS TRUE)
 
+include(${CMAKE_SOURCE_DIR}/cmake/codestyle.cmake)
+include(${CMAKE_SOURCE_DIR}/cmake/doctools.cmake)
+include(${CMAKE_SOURCE_DIR}/cmake/pkgconfig.cmake)
+
 find_package(Threads REQUIRED)
+pkg_find(PKG libcurl
+         PKG libglog
+         PKG libudev
+         PKG fuse)
 
 include_directories(${CMAKE_SOURCE_DIR})
 include_directories(${CMAKE_SOURCE_DIR}/third_party/googletest/include)
 include_directories(${CMAKE_SOURCE_DIR}/third_party/re2)
+include_directories(${CMAKE_SOURCE_DIR}/third_party/fmt/include)
 
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++11")
 set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -rdynamic")
@@ -28,5 +37,7 @@ foreach(child ${children})
   if(EXISTS ${CMAKE_SOURCE_DIR}/${child}/CMakeLists.txt)
     message("Enabling subdirectory '${child}' for this checkout")
     add_subdirectory(${child})
+  else()
+    message("Skipping subdirectory '${child}' for this checkout")
   endif()
 endforeach()

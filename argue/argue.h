@@ -354,13 +354,11 @@ struct Optional {
       : is_set(false) {}
 
   Optional(const T& value)  // NOLINT(runtime/explicit)
-      : is_set(true),
-        value(value) {}
+      : is_set(true), value(value) {}
 
   template <typename U>
   Optional(const U& value)  // NOLINT(runtime/explicit)
-      : is_set(true),
-        value(value) {}
+      : is_set(true), value(value) {}
 
   Optional& operator=(const NoneType&) {
     is_set = false;
@@ -891,6 +889,11 @@ struct CommonOptions {
   T* dest_;
 };
 
+template <typename T>
+CommonOptions<T> make_opts(T* varaddr) {
+  return CommonOptions<T>{};
+}
+
 // Strip the action obect from the option struct so that we don't have a
 // cyclic reference when passing into the action object to Prep() it.
 template <typename T>
@@ -1159,6 +1162,12 @@ class Parser {
     }
   }
 
+  // For things like help/version which don't need arguments
+  void AddArgument(const std::string& long_flag, std::nullptr_t,
+                   const CommonOptions<NoneType>& spec = {}) {
+    AddArgument<NoneType>(long_flag, nullptr, spec);
+  }
+
   std::shared_ptr<Subparsers> AddSubparsers(const std::string& name,
                                             std::string* dest,
                                             const SubparserOptions& opts = {}) {
@@ -1279,8 +1288,8 @@ void StoreImpl<T, /*is_container=*/true>::operator()(
     }
 
     int result = Parse(args->front(), &temp);
-    ARGUE_ASSERT(INPUT_ERROR, result == 0) << "Failed to parse '"
-                                           << args->front();
+    ARGUE_ASSERT(INPUT_ERROR, result == 0)
+        << "Failed to parse '" << args->front();
 
     this->dest_->emplace_back(temp);
     if (choices_.size() > 0) {
@@ -1314,3 +1323,18 @@ void Version<T>::operator()(const ParseContext& ctx,
 }
 
 }  // namespace argue
+
+
+#define ARGUE_EMPTY \
+  {}
+
+#define ARGUE_EMPTY1 ARGUE_EMPTY
+#define ARGUE_EMPTY2 ARGUE_EMPTY1, ARGUE_EMPTY
+#define ARGUE_EMPTY3 ARGUE_EMPTY2, ARGUE_EMPTY
+#define ARGUE_EMPTY4 ARGUE_EMPTY3, ARGUE_EMPTY
+#define ARGUE_EMPTY5 ARGUE_EMPTY4, ARGUE_EMPTY
+#define ARGUE_EMPTY6 ARGUE_EMPTY5, ARGUE_EMPTY
+#define ARGUE_EMPTY7 ARGUE_EMPTY6, ARGUE_EMPTY
+#define ARGUE_EMPTY8 ARGUE_EMPTY7, ARGUE_EMPTY
+
+

@@ -8,6 +8,9 @@
 #include <re2/set.h>
 #include <re2/stringpiece.h>
 
+#define JJSON_VERSION \
+  { 0, 2, 0 }
+
 // Tools for parsing and emitting JSON formatted data
 namespace json {
 

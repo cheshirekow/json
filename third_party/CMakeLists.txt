@@ -54,3 +54,8 @@ if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/re2)
   add_library(re2 STATIC ${re2_sources})
   target_link_libraries(re2 Threads::Threads)
 endif()
+
+# NOTE(josh): don't build libfmt if it's not part of this sparse checkout
+if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/fmt)
+  add_subdirectory(fmt)
+endif()

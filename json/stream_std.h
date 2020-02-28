@@ -2,6 +2,7 @@
 // Copyright 2018 Josh Bialkowski <josh.bialkowski@gmail.com>
 
 #include <list>
+#include <map>
 #include <set>
 #include <string>
 #include <vector>
@@ -12,7 +13,17 @@ namespace json {
 namespace stream {
 
 // -----------------------------------------------------------------------------
-//    Parser Templates
+//    High level API
+// -----------------------------------------------------------------------------
+
+// Convenience entry point. Will serialize the object twice. Once to get the
+// size of the necessary buffer, and second with a buffer of the appropriate
+// size.
+template <typename T>
+std::string Emit(const T& obj, const SerializeOpts& opts=kDefaultOpts);
+
+// -----------------------------------------------------------------------------
+//    Parser Helpers
 // -----------------------------------------------------------------------------
 
 void ParseString(const Token& token, std::string* value);
@@ -27,22 +38,28 @@ void ParseInsertable(LexerParser* stream, T* obj);
 //    Parser Overloads
 // -----------------------------------------------------------------------------
 
-void Parse(const Event& event, LexerParser* stream, std::string* value);
+void ParseValue(const Event& event, LexerParser* stream, std::string* value);
 
 template <class T, class Allocator>
-void Parse(const Event& event, LexerParser* stream,
-           std::vector<T, Allocator>* value);
+void ParseValue(const Event& event, LexerParser* stream,
+                std::list<T, Allocator>* value);
 
-template <class T, class Allocator>
-void Parse(const Event& event, LexerParser* stream,
-           std::list<T, Allocator>* value);
+template <class Key, class T, class Compare, class Allocator>
+void ParseValue(const Event& entry_event, LexerParser* stream,
+                std::map<Key, T, Compare, Allocator>* out);
 
 template <class Key, class Compare, class Allocator>
-void Parse(const Event& event, LexerParser* stream,
-           std::set<Key, Compare, Allocator>* value);
+void ParseValue(const Event& event, LexerParser* stream,
+                std::set<Key, Compare, Allocator>* value);
+
+template <class T, class Allocator>
+void ParseValue(const Event& event, LexerParser* stream,
+                std::vector<T, Allocator>* value);
+
+void ParseValue(const Event& event, LexerParser* stream, std::string* value);
 
 // -----------------------------------------------------------------------------
-//    Emitter Templates
+//    Emitter Helpers
 // -----------------------------------------------------------------------------
 
 void EmitString(const std::string& value, BufPrinter* out);
@@ -58,140 +75,24 @@ void EmitIterable(const T* obj, const SerializeOpts& opts, size_t depth,
 //    Emitter Overloads
 // -----------------------------------------------------------------------------
 
-void Emit(const std::string& value, const SerializeOpts& opts, size_t depth,
-          BufPrinter* out);
+void EmitValue(const std::string& value, const SerializeOpts& opts,
+               size_t depth, BufPrinter* out);
 
 template <class T, class Allocator>
-void Emit(const std::vector<T, Allocator>& value, const SerializeOpts& opts,
-          size_t depth, BufPrinter* out);
-
-template <class T, class Allocator>
-void Emit(const std::list<T, Allocator>& value, const SerializeOpts& opts,
-          size_t depth, BufPrinter* out);
+void EmitValue(const std::list<T, Allocator>& value, const SerializeOpts& opts,
+               size_t depth, BufPrinter* out);
 
 template <class Key, class Compare, class Allocator>
-void Emit(const std::set<Key, Compare, Allocator>& value,
-          const SerializeOpts& opts, size_t depth, BufPrinter* out);
+void EmitValue(const std::set<Key, Compare, Allocator>& value,
+               const SerializeOpts& opts, size_t depth, BufPrinter* out);
 
-}  // namespace stream
-}  // namespace json
-
-//
-//
-//
-// -----------------------------------------------------------------------------
-//                       Template Implementations
-// -----------------------------------------------------------------------------
-//
-//
-//
-
-namespace json {
-namespace stream {
-
-// -----------------------------------------------------------------------------
-//    Parser Templates
-// -----------------------------------------------------------------------------
-
-template <typename T>
-void ParseInsertable(LexerParser* stream, T* obj) {
-  typename T::value_type value{};
-  ValueParser handler{};
-  AssignParser(&handler, &value);
-  std::insert_iterator<T> iter(*obj, obj->begin());
-  Event event{};
-  while (stream->GetNextEvent(&event) >= 0) {
-    switch (event.typeno) {
-      case Event::LIST_BEGIN:
-        break;
-
-      case Event::LIST_END:
-        return;
-
-      default:
-        value = (*iter);
-        handler.Dispatch(event, stream);
-        *(iter++) = value;
-        break;
-    }
-  }
-}
-
-// -----------------------------------------------------------------------------
-//    Parser Overloads
-// -----------------------------------------------------------------------------
+template <class Key, class T, class Compare, class Allocator>
+void EmitValue(const std::map<Key, T, Compare, Allocator>& value,
+               const SerializeOpts& opts, size_t depth, BufPrinter* out);
 
 template <class T, class Allocator>
-void Parse(const Event& event, LexerParser* stream,
-           std::vector<T, Allocator>* value) {
-  ParseInsertable(stream, value);
-}
-
-template <class T, class Allocator>
-void Parse(const Event& event, LexerParser* stream,
-           std::list<T, Allocator>* value) {
-  ParseInsertable(stream, value);
-}
-
-template <class Key, class Compare, class Allocator>
-void Parse(const Event& event, LexerParser* stream,
-           std::set<Key, Compare, Allocator>* value) {
-  ParseInsertable(stream, value);
-}
-
-// -----------------------------------------------------------------------------
-//    Emitter Templates
-// -----------------------------------------------------------------------------
-
-template <typename T>
-void EmitIterable(const T* obj, const SerializeOpts& opts, size_t depth,
-                  BufPrinter* out) {
-  if (obj->size() < 1) {
-    (*out)("[]");
-  } else {
-    (*out)("[");
-    if (opts.indent) {
-      (*out)("\n");
-    }
-    auto iter = obj->begin();
-    while (iter != obj->end()) {
-      ValueEmitter emitter{};
-      AssignEmitter(&emitter, &(*iter));
-      FmtIndent(out, opts.indent, depth + 1);
-      emitter.Dispatch(opts, depth + 1, out);
-      ++iter;
-      if (iter != obj->end()) {
-        (*out)("%s", opts.separators[1]);
-      }
-      if (opts.indent) {
-        (*out)("\n");
-      }
-    }
-    (*out)("]");
-  }
-}
-
-// -----------------------------------------------------------------------------
-//    Emitter Overloads
-// -----------------------------------------------------------------------------
-
-template <class T, class Allocator>
-void Emit(const std::vector<T, Allocator>& value, const SerializeOpts& opts,
-          size_t depth, BufPrinter* out) {
-  EmitIterable(value, opts, depth, out);
-}
-
-template <class T, class Allocator>
-void Emit(const std::list<T, Allocator>& value, const SerializeOpts& opts,
-          size_t depth, BufPrinter* out) {
-  EmitIterable(value, opts, depth, out);
-}
-
-template <class Key, class Compare, class Allocator>
-void Emit(const std::set<Key, Compare, Allocator>& value,
-          const SerializeOpts& opts, size_t depth, BufPrinter* out) {
-  EmitIterable(value, opts, depth, out);
-}
+void EmitValue(const std::vector<T, Allocator>& value,
+               const SerializeOpts& opts, size_t depth, BufPrinter* out);
 
 }  // namespace stream
 }  // namespace json
