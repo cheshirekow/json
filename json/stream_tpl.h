@@ -1,10 +1,6 @@
 #pragma once
 // Copyright 2018 Josh Bialkowski <josh.bialkowski@gmail.com>
 
-#include <fmt/format.h>
-#include <fmt/ostream.h>
-#include <glog/logging.h>
-
 #include "json/stream.h"
 
 namespace json {
@@ -13,6 +9,20 @@ namespace stream {
 // -----------------------------------------------------------------------------
 //    High Level
 // -----------------------------------------------------------------------------
+
+template <typename T, typename U>
+void Walk(const T& obj, const WalkOpts& opts, U* walker) {
+  WalkValue(obj, opts, walker);
+}
+
+template <typename T, typename U>
+void Walk(const WalkOpts& opts, T* obj, U* walker) {
+  WalkValue(opts, obj, walker);
+}
+
+// NOTE(josh): ideally we would get these definitions out of this header file,
+// however they must come *AFTER* all declarations for the internal functions
+// ParseValue (etc)... otherwise name lookup will fail.
 
 template <typename T>
 void Parse(json::LexerParser* stream, T* out) {
@@ -34,53 +44,28 @@ void Parse(const re2::StringPiece& content, T* out) {
   Parse(&stream, out);
 }
 
+template <typename T>
+void Emit(const T& obj, const SerializeOpts& opts, char* begin, char* end) {
+  BufPrinter out{nullptr, nullptr};
+  EmitValue(obj, opts, 0, &out);
+}
+
+// TODO(josh): get this back out of the non-std header
+template <typename T>
+std::string Emit(const T& obj, const SerializeOpts& opts) {
+  BufPrinter out1{nullptr, nullptr};
+  EmitValue(obj, opts, 0, &out1);
+  std::string buf;
+  buf.resize(out1.Size() + 1, '\0');
+  BufPrinter out2{&buf[0], &buf[buf.size()]};
+  EmitValue(obj, opts, 0, &out2);
+  buf.resize(out2.Size());
+  return buf;
+}
+
 // -----------------------------------------------------------------------------
 //    Parser Helpers
 // -----------------------------------------------------------------------------
-
-template <typename T>
-void ParseInteger(const Token& token, T* obj) {
-  if (token.typeno != Token::NUMERIC_LITERAL) {
-    printf("WARNING, Can't parse token of type '%d' as an integer\n",
-           token.typeno);
-  }
-  if (sizeof(T) == 1) {
-    int16_t temp;
-    if (RE2::FullMatch(token.spelling, "(.+)", &temp)) {
-      *obj = temp;
-    } else {
-      printf("WARNING, re2 can't parse token '%s' as an integer\n",
-             token.spelling.as_string().c_str());
-    }
-  } else {
-    if (RE2::FullMatch(token.spelling, "(.+)", obj)) {
-      // OK
-    } else {
-      printf("WARNING, re2 can't parse token '%s' as an integer\n",
-             token.spelling.as_string().c_str());
-    }
-  }
-}
-
-template <typename T>
-void ParseRealNumber(const Token& token, T* obj) {
-  if (token.typeno != Token::NUMERIC_LITERAL) {
-    printf("WARNING, Can't parse token of type '%d' as a real number\n",
-           token.typeno);
-  }
-  if (RE2::FullMatch(token.spelling, "(.+)", obj)) {
-    // OK
-  } else {
-    printf("WARNING, re2 can't parse token '%s' as a real number\n",
-           token.spelling.as_string().c_str());
-  }
-}
-
-template <size_t N>
-void ParseString(const Token& token, char (*buf)[N]) {
-  // NOTE(josh): strip literal quotes from beginning/end of the string.
-  token.spelling.substr(1, token.spelling.size() - 2).copy(*buf, N, 0);
-}
 
 template <class T, size_t N>
 void ParseArray(LexerParser* stream, T (*arr)[N]) {
@@ -153,50 +138,44 @@ void ParseObject(const Event& entry_event, LexerParser* stream, T* out) {
   LOG(WARNING) << error.msg;
 }
 
-// -----------------------------------------------------------------------------
-//    Parse Overloads
-// -----------------------------------------------------------------------------
+template <typename T>
+void ParseInsertable(const Event& entry_event, LexerParser* stream, T* out) {
+  if (entry_event.typeno != json::Event::LIST_BEGIN) {
+    LOG(WARNING) << fmt::format("Can't parse {} as a list at {}:{}",
+                                json::Event::ToString(entry_event.typeno),
+                                entry_event.token.location.lineno,
+                                entry_event.token.location.colno);
+    SinkValue(entry_event, stream);
+    return;
+  }
 
-template <size_t N>
-void ParseValue(const Event& event, LexerParser* stream, char (*str)[N]) {
-  ParseString(event.token, str);
+  // TODO(josh): should we?
+  // out->clear();
+  std::insert_iterator<T> iter(*out, out->begin());
+
+  json::Event event{};
+  json::Error error{};
+  while (stream->GetNextEvent(&event, &error) == 0) {
+    if (event.typeno == json::Event::LIST_END) {
+      return;
+    }
+    typename T::value_type value{};
+    ParseValue(event, stream, &value);
+    *(iter++) = value;
+  }
+  LOG(WARNING) << error.msg;
 }
 
-template <typename T, size_t N>
-void ParseValue(const Event& event, LexerParser* stream, T (*arr)[N]) {
-  assert(event.typeno == Event::LIST_BEGIN);
-  ParseArray(stream, arr);
-}
-
-// template <typename T>
-// void Parse(const Event& event, LexerParser* stream, T* obj) {
-//   assert(event.typeno == Event::OBJECT_BEGIN);
-//   ParseObject(stream, obj);
-// }
-
 // -----------------------------------------------------------------------------
-//    Emitter helpers
+//    Emit Helpers
 // -----------------------------------------------------------------------------
 
 template <typename T>
-void EmitInteger(T value, BufPrinter* out) {
-  (*out)("%ld", static_cast<long>(value));  // NOLINT(runtime/int)
-}
-
-template <typename T>
-void EmitRealNumber(T value, BufPrinter* out) {
-  (*out)("%f", static_cast<double>(value));
-}
-
-template <size_t N>
-void EmitString(const char (&arr)[N], BufPrinter* out) {
-  (*out)("\"%s\"", arr);
-}
-
-template <typename T, size_t N>
-void EmitValue(const T (&arr)[N], const SerializeOpts& opts, size_t depth,
-               BufPrinter* out) {
-  EmitArray(arr, opts, depth, out);
+void EmitField(const char* key, const T& value, const SerializeOpts& opts,
+               size_t depth, BufPrinter* out) {
+  FmtIndent(out, opts.indent, depth + 1);
+  (*out)("\"%s\"%s", key, opts.separators[0]);
+  EmitValue(value, opts, depth + 1, out);
 }
 
 template <class T, size_t N>
@@ -246,24 +225,6 @@ void EmitIterable(const T& obj, const SerializeOpts& opts, size_t depth,
     FmtIndent(out, opts.indent, depth);
     (*out)("]");
   }
-}
-
-template <typename T>
-void EmitField(const char* key, const T& value, const SerializeOpts& opts,
-               size_t depth, BufPrinter* out) {
-  FmtIndent(out, opts.indent, depth + 1);
-  (*out)("\"%s\"%s", key, opts.separators[0]);
-  EmitValue(value, opts, depth + 1, out);
-}
-
-// -----------------------------------------------------------------------------
-//    Emitter Overloads
-// -----------------------------------------------------------------------------
-
-template <size_t N>
-void EmitValue(const char (&value)[N], const SerializeOpts& opts, size_t depth,
-               BufPrinter* out) {
-  EmitString(value, out);
 }
 
 }  // namespace stream

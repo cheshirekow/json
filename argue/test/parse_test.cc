@@ -6,6 +6,12 @@
 // NOTE(josh): test templates will overflow when instanciated, but codepath is
 // disabled in runtime.
 #pragma GCC diagnostic ignored "-Woverflow"
+#if __GNUC__ > 5
+#  pragma GCC diagnostic ignored "-Wconstant-conversion"
+#endif
+#if __clang__
+#  pragma clang diagnostic ignored "-Wconstant-conversion"
+#endif
 
 #define EXPECT_PARSE(QUERY, VALUE) this->ExpectParse(QUERY, VALUE, __LINE__)
 

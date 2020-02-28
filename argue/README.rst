@@ -92,9 +92,9 @@ argparse documentation is replicated in C++ with.
       return 0;
     }
 
----------------
+-------------
 Example usage
----------------
+-------------
 ::
 
     $ ./argue-demo -h
@@ -127,9 +127,10 @@ Example usage
 Note on designated-initializers
 -------------------------------
 
-Designated initializers are a ``C99`` feature that ``clang`` interprets correctly
-when compiling ``C++``, but is not in fact a language feature. The ``GNU``
-toolchain does not implement this feature. Therefore, while the following is valid when compiling with ``clang``::
+Designated initializers are a ``C99`` feature that ``clang`` interprets
+correctly (as an extension) when compiling ``C++``, but is not in fact a
+language feature. The ``GNU`` toolchain does not implement this feature.
+Therefore, while the following is valid when compiling with ``clang``::
 
     parser.AddArgument("integer", &int_args, {
       .nargs_ = "+",
@@ -137,7 +138,8 @@ toolchain does not implement this feature. Therefore, while the following is val
       .metavar_ = "N"
     });
 
-We must use the following in ``gcc``::
+We are not allowed to skip any fields in GCC, meaning that if we wish to
+use designated initializers in GCC, we must use the following::
 
     parser.AddArgument("integer", &int_args, {
       .action_ = "store",
@@ -149,3 +151,31 @@ We must use the following in ``gcc``::
       .help_ = "an integer for the accumulator",
       .metavar_ = "N",
     });
+
+Alternatively we could use the more brittle universal initializer syntax
+with no designators::
+
+    parser.AddArgument("integer", &int_args, {
+      /*.action_ =*/ "store",
+      /*.nargs_ =*/ "+",
+      /*.const_ =*/ argue::kNone,
+      /*.default_ =*/ argue::kNone,
+      /*.choices_ =*/ {1, 2, 3, 4},
+      /*.required_ =*/ false,
+      /*.help_ =*/ "an integer for the accumulator",
+      /*.metavar_ =*/ "N",
+    });
+
+There are some macros which can help to fill in empty/default values
+when using the placement initializer syntax. For instance, one could do::
+
+    parser.AddArgument("integer", &int_args, {
+      ARGUE_EMPTY_4,
+      /*.choices_ =*/ {1, 2, 3, 4},
+      /*.required_ =*/ false,
+      /*.help_ =*/ "an integer for the accumulator",
+      /*.metavar_ =*/ "N",
+    });
+
+The ``ARGUE_EMPTYN`` macros simply expand to ``N`` empty initializers,
+for instance ``ARGUE_EMPTY4`` expands to ``{}, {}, {}, {}``.

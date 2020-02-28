@@ -1,0 +1,53 @@
+diff --git a/third_party/fmt/CMakeLists.txt b/third_party/fmt/CMakeLists.txt
+index e062613..792d9af 100644
+--- a/third_party/fmt/CMakeLists.txt
++++ b/third_party/fmt/CMakeLists.txt
+@@ -106,6 +106,16 @@ endif ()
+ add_library(fmt ${FMT_SOURCES} ${FMT_HEADERS} README.rst ChangeLog.rst)
+ add_library(fmt::fmt ALIAS fmt)
+ 
++if (BUILD_SHARED_LIBS)
++set(fmt_static_target_ fmt-static)
++set(fmt_shared_target_ fmt)
++add_library(fmt-static STATIC ${FMT_SOURCES} ${FMT_HEADERS} README.rst ChangeLog.rst)
++else()
++set(fmt_static_target_ fmt)
++set(fmt_shared_target_ fmt-shared)
++add_library(fmt-shared SHARED ${FMT_SOURCES} ${FMT_HEADERS} README.rst ChangeLog.rst)
++endif()
++
+ # Starting with CMake 3.1 the CXX_STANDARD property can be used instead.
+ # Don't export -std since it may break projects that use other standards.
+ target_compile_options(fmt PRIVATE ${CPP14_FLAG})
+@@ -117,18 +127,22 @@ target_include_directories(fmt PUBLIC
+   $<BUILD_INTERFACE:${PROJECT_SOURCE_DIR}/include>
+   $<INSTALL_INTERFACE:include>)
+ 
+-set_target_properties(fmt PROPERTIES
+-  VERSION ${FMT_VERSION} SOVERSION ${CPACK_PACKAGE_VERSION_MAJOR}
++set_target_properties(
++  ${fmt_static_target_} ${fmt_shared_target_}
++  PROPERTIES
++  VERSION ${FMT_VERSION}
++  SOVERSION ${CPACK_PACKAGE_VERSION_MAJOR}
++  OUTPUT_NAME fmt
+   DEBUG_POSTFIX d)
+ 
+-if (BUILD_SHARED_LIBS)
+-  if (UNIX AND NOT APPLE)
+-    # Fix rpmlint warning:
+-    # unused-direct-shlib-dependency /usr/lib/libformat.so.1.1.0 /lib/libm.so.6.
+-    target_link_libraries(fmt -Wl,--as-needed)
+-  endif ()
+-  target_compile_definitions(fmt PRIVATE FMT_EXPORT INTERFACE FMT_SHARED)
++if (UNIX AND NOT APPLE)
++  # Fix rpmlint warning:
++  # unused-direct-shlib-dependency /usr/lib/libformat.so.1.1.0 /lib/libm.so.6.
++  target_link_libraries(${fmt_shared_target_} -Wl,--as-needed)
+ endif ()
++target_compile_definitions(
++  ${fmt_shared_target_} PRIVATE FMT_EXPORT INTERFACE FMT_SHARED)
++
+ 
+ # Additionally define a header-only library when CMake is new enough.
+ if (CMAKE_VERSION VERSION_GREATER 3.1.0 OR CMAKE_VERSION VERSION_EQUAL 3.1.0)

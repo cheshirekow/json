@@ -11,58 +11,63 @@
 #include <fmt/ostream.h>
 #include <glog/logging.h>
 
-#include "json/stream_tpl.h"
+#include "json/parse.h"
 
 namespace json {
 namespace stream {
 
 // -----------------------------------------------------------------------------
-//    High Level
-// -----------------------------------------------------------------------------
-
-template <typename T>
-std::string Emit(const T& obj, const SerializeOpts& opts) {
-  BufPrinter out1{nullptr, nullptr};
-  EmitValue(obj, opts, 0, &out1);
-  std::string buf;
-  buf.resize(out1.Size() + 1, '\0');
-  BufPrinter out2{&buf[0], &buf[buf.size()]};
-  EmitValue(obj, opts, 0, &out2);
-  buf.resize(out2.Size());
-  return buf;
-}
-
-// -----------------------------------------------------------------------------
 //    Parser Helpers
 // -----------------------------------------------------------------------------
 
+void ParseString(const Token& token, std::string* value);
+
+// Parse any container that implements the standard insertable concept.
+// In particular, `std::insert_iterator(&container, container->begin())`
+// can be constructed.
 template <typename T>
-void ParseInsertable(const Event& entry_event, LexerParser* stream, T* out) {
-  if (entry_event.typeno != json::Event::LIST_BEGIN) {
-    LOG(WARNING) << fmt::format("Can't parse {} as a list at {}:{}",
-                                json::Event::ToString(entry_event.typeno),
-                                entry_event.token.location.lineno,
-                                entry_event.token.location.colno);
-    SinkValue(entry_event, stream);
-    return;
-  }
+void ParseInsertable(const Event& entry_event, LexerParser* stream, T* out);
 
-  // TODO(josh): should we?
-  // out->clear();
-  std::insert_iterator<T> iter(*out, out->begin());
+// -----------------------------------------------------------------------------
+//    Parser Overloads
+// -----------------------------------------------------------------------------
 
-  json::Event event{};
-  json::Error error{};
-  while (stream->GetNextEvent(&event, &error) == 0) {
-    if (event.typeno == json::Event::LIST_END) {
-      return;
-    }
-    typename T::value_type value{};
-    ParseValue(event, stream, &value);
-    *(iter++) = value;
-  }
-  LOG(WARNING) << error.msg;
-}
+void ParseValue(const Event& event, LexerParser* stream, std::string* value);
+
+template <class T, class Allocator>
+void ParseValue(const Event& event, LexerParser* stream,
+                std::list<T, Allocator>* value);
+
+template <class Key, class T, class Compare, class Allocator>
+void ParseValue(const Event& entry_event, LexerParser* stream,
+                std::map<Key, T, Compare, Allocator>* out);
+
+template <class Key, class Compare, class Allocator>
+void ParseValue(const Event& event, LexerParser* stream,
+                std::set<Key, Compare, Allocator>* value);
+
+template <class T, class Allocator>
+void ParseValue(const Event& event, LexerParser* stream,
+                std::vector<T, Allocator>* value);
+
+void ParseValue(const Event& event, LexerParser* stream, std::string* value);
+
+}  // namespace stream
+}  // namespace json
+
+//
+//
+//
+// -----------------------------------------------------------------------------
+//    Template Implementations
+// -----------------------------------------------------------------------------
+//
+//
+//
+
+namespace json {
+namespace stream {
+
 
 // -----------------------------------------------------------------------------
 //    Parse Overloads
@@ -127,53 +132,6 @@ void ParseValue(const Event& entry_event, LexerParser* stream,
     ParseValue(event, stream, &value_ref);
   }
   LOG(WARNING) << error.msg;
-}
-
-// -----------------------------------------------------------------------------
-//    Emitter Overloads
-// -----------------------------------------------------------------------------
-
-template <class T, class Allocator>
-void EmitValue(const std::vector<T, Allocator>& value,
-               const SerializeOpts& opts, size_t depth, BufPrinter* out) {
-  EmitIterable(value, opts, depth, out);
-}
-
-template <class T, class Allocator>
-void EmitValue(const std::list<T, Allocator>& value, const SerializeOpts& opts,
-               size_t depth, BufPrinter* out) {
-  EmitIterable(value, opts, depth, out);
-}
-
-template <class Key, class Compare, class Allocator>
-void EmitValue(const std::set<Key, Compare, Allocator>& value,
-               const SerializeOpts& opts, size_t depth, BufPrinter* out) {
-  EmitIterable(value, opts, depth, out);
-}
-
-template <class Key, class T, class Compare, class Allocator>
-void EmitValue(const std::map<Key, T, Compare, Allocator>& value,
-               const SerializeOpts& opts, size_t depth, BufPrinter* out) {
-  (*out)("{");
-  if (opts.indent) {
-    (*out)("\n");
-  }
-  auto iter = value.begin();
-  while (iter != value.end()) {
-    FmtIndent(out, opts.indent, depth + 1);
-    EmitValue(iter->first, opts, depth + 1, out);
-    (*out)(opts.separators[0]);
-    EmitValue(iter->second, opts, depth + 1, out);
-    ++iter;
-    if (iter != value.end()) {
-      (*out)("%s", opts.separators[1]);
-    }
-    if (opts.indent) {
-      (*out)("\n");
-    }
-  }
-  FmtIndent(out, opts.indent, depth);
-  (*out)("}");
 }
 
 }  // namespace stream

@@ -1,6 +1,5 @@
-set(argue_headers argue.h)
-
-set(argue_sources argue.cc)
+set(argue_headers argue.h argue_glog.h)
+set(argue_sources argue.cc argue_glog.cc)
 
 set(argue_files
     ${argue_headers}
@@ -12,31 +11,43 @@ set(argue_files
     test/util_test.cc)
 
 add_library(argue STATIC ${argue_sources})
+target_pkg_depends(argue libglog)
+target_link_libraries(argue PUBLIC fmt)
+
 add_executable(argue-demo demo.cc)
 target_link_libraries(argue-demo argue)
 
-add_custom_command(OUTPUT ${CMAKE_CURRENT_BINARY_DIR}/argue_format.stamp
-                   COMMAND clang-format -style file -i ${argue_files}
-                   COMMAND python -Bm cmake_format -i CMakeLists.txt
-                           doc/CMakeLists.txt test/CMakeLists.txt
-                   COMMAND touch ${CMAKE_CURRENT_BINARY_DIR}/argue_format.stamp
-                   DEPENDS ${argue_files}
-                   WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR})
-add_custom_target(argue_format
-                  DEPENDS ${CMAKE_CURRENT_BINARY_DIR}/argue_format.stamp)
-add_dependencies(format argue_format)
-
-add_custom_command(OUTPUT ${CMAKE_CURRENT_BINARY_DIR}/argue_lint.stamp
-                   COMMAND cpplint ${argue_files}
-                   COMMAND touch ${CMAKE_CURRENT_BINARY_DIR}/argue_lint.stamp
-                   DEPENDS ${argue_files}
-                   WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR})
-add_custom_target(argue_lint
-                  DEPENDS ${CMAKE_CURRENT_BINARY_DIR}/argue_lint.stamp)
-
-# NOTE(josh): format before lint-check, avoid formatting lint
-add_dependencies(argue_lint argue_format)
-add_dependencies(lint argue_lint)
+format_and_lint(argue ${argue_files})
 
 add_subdirectory(doc)
-add_subdirectory(test)
+
+add_executable(argue-assert_test test/assert_test.cc)
+target_link_libraries(argue-assert_test argue gtest gtest_main)
+add_test(NAME argue-assert_test
+         COMMAND argue-assert_test
+         WORKING_DIRECTORY ${CMAKE_SOURCE_DIR})
+set_property(TEST argue-assert_test APPEND PROPERTY LABELS CI-DISABLED)
+
+add_executable(argue-arg_test test/arg_test.cc)
+target_link_libraries(argue-arg_test argue gtest gtest_main)
+add_test(NAME argue-arg_test
+         COMMAND argue-arg_test
+         WORKING_DIRECTORY ${CMAKE_SOURCE_DIR})
+
+add_executable(argue-parse_test test/parse_test.cc)
+target_link_libraries(argue-parse_test argue gtest gtest_main)
+add_test(NAME argue-parse_test
+         COMMAND argue-parse_test
+         WORKING_DIRECTORY ${CMAKE_SOURCE_DIR})
+
+add_executable(argue-util_test test/util_test.cc)
+target_link_libraries(argue-util_test argue gtest gtest_main)
+add_test(NAME argue-util_test
+         COMMAND argue-util_test
+         WORKING_DIRECTORY ${CMAKE_SOURCE_DIR})
+
+add_test(NAME argue-execution_test
+         COMMAND python ${CMAKE_CURRENT_SOURCE_DIR}/test/execution_tests.py
+                 --exe-path $<TARGET_FILE:argue-demo>
+          WORKING_DIRECTORY ${CMAKE_SOURCE_DIR})
+set_property(TEST argue-execution_test APPEND PROPERTY LABELS CI-DISABLED)

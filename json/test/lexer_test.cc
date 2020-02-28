@@ -5,7 +5,7 @@
 
 #include "json/json.h"
 
-using namespace json;
+using namespace json;  // NOLINT
 
 TEST(LexerTest, StringLiteralTest) {
   std::string test_string = "{\"foo\" : \"hello\"}";

@@ -165,44 +165,57 @@ int MarkupFile(const ProgramOpts& opts, const std::string& content) {
 
 const char* kProlog =
     ""
-    "Demonstrates the usage of the jjson library to lex and parse JSON data";
+    "Demonstrates the usage of the json library to lex and parse JSON data";
 
 int main(int argc, char** argv) {
   argue::Parser parser({.add_help = true,
                         .add_version = true,
-                        .name = "json in C++",
-                        .version = JJSON_VERSION,
+                        .name = "json",
+                        .version = JSON_VERSION,
                         .author = "Josh Bialkowski <josh.bialkowski@gmail.com>",
                         .copyright = "(C) 2018",
                         .prolog = kProlog});
   ProgramOpts opts;
-  auto subparsers = parser.AddSubparsers("command", &opts.command,
-                                         {.help_ = "see subcommands"});
+  auto subparsers = parser.AddSubparsers(
+      "command", &opts.command,
+      {.help = "Each subcommand has it's own options and arguments, see "
+               "individual subcommand help."});
   auto lex_parser = subparsers->AddParser(
-      "lex", {.help_ = "Lex the file and dump token information"});
+      "lex", {.help = "Lex the file and dump token information"});
   auto parse_parser = subparsers->AddParser(
-      "parse", {.help_ = "Parse the file and dump actionable parse events"});
+      "parse", {.help = "Parse the file and dump actionable parse events"});
   auto verify_parser = subparsers->AddParser(
-      "verify", {.help_ = "Parse the file and exit with 0 if it's valid json"});
+      "verify", {.help = "Parse the file and exit with 0 if it's valid json"});
   auto markup_parser = subparsers->AddParser(
-      "markup", {.help_ = "Parse and dump the contents with HTML markup"});
+      "markup", {.help = "Parse and dump the contents with HTML markup"});
 
   for (auto& subparser :
        {lex_parser, parse_parser, markup_parser, verify_parser}) {
+    argue::KWargs<std::string> kwargs{.action = "store",
+                                      .nargs = "?",
+                                      .const_ = {},
+                                      .default_ = "-",
+                                      .choices = {},
+                                      .dest = {},
+                                      .required = false,
+                                      .help = "Path to input, '-' for stdin",
+                                      .metavar = "infile"};
+
     subparser->AddArgument("infile", &opts.infile,
-                           {.action_ = "store",
-                            .nargs_ = "?",
-                            .const_ = argue::kNone,
+                           {.action = "store",
+                            .nargs = "?",
+                            .const_ = {},
                             .default_ = "-",
-                            .choices_ = {},
-                            .required_ = false,
-                            .help_ = "Path to input, '-' for stdin",
-                            .metavar_ = "infile"});
+                            .choices = {},
+                            .dest = {},
+                            .required = false,
+                            .help = "Path to input, '-' for stdin",
+                            .metavar = "infile"});
   }
 
-  argue::CommonOptions<bool> argopts{};
-  argopts.action_ = "store_true";
-  argopts.help_ = "output just the content";
+  argue::KWargs<bool> argopts{};
+  argopts.action = "store_true";
+  argopts.help = "output just the content";
   markup_parser->AddArgument("-o", "--omit-template",
                              &opts.markup.omit_template, argopts);
 
@@ -230,7 +243,6 @@ int main(int argc, char** argv) {
   content.assign((std::istreambuf_iterator<char>(*infile)),
                  std::istreambuf_iterator<char>());
 
-  json::Error error;
   if (opts.command == "lex") {
     exit(LexFile(opts, content));
   } else if (opts.command == "parse") {

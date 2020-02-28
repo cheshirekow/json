@@ -1,5 +1,4 @@
 // Copyright 2018 Josh Bialkowski <josh.bialkowski@gmail.com>
-
 #include "json/json.h"
 
 #include <algorithm>
@@ -81,7 +80,7 @@ struct Spec {
 //! Mapping of string patern to token type
 Spec kScanList[] = {
     // https://stackoverflow.com/a/37379449/141023
-    {"\"[^\"\\\\]*(?:\\.[^\"\\\\]*)*\"", Token::STRING_LITERAL},
+    {"\"[^\"\\\\]*(?:\\\\.[^\"\\\\]*)*\"", Token::STRING_LITERAL},
     {"(-?\\d+)(\\.\\d+)?([eE][+-]?\\d+)?", Token::NUMERIC_LITERAL},
     {"true", Token::BOOLEAN_LITERAL},
     {"false", Token::BOOLEAN_LITERAL},
@@ -100,7 +99,7 @@ int Scanner::Init(Error* error) {
   matches_.reserve(sizeof(kScanList) / sizeof(Spec));
   for (size_t idx = 0; idx < sizeof(kScanList) / sizeof(Spec); ++idx) {
     int err = scanset_.Add(kScanList[idx].pattern, NULL);
-    if (err != idx) {
+    if (err != static_cast<int>(idx)) {
       FmtError(error, Error::INTERNAL_ERROR)(
           "Failed to add all scanlist items to `RE2::Set`");
       init_state_ = -1;
@@ -489,7 +488,8 @@ int Verify(const re2::StringPiece& source, Error* error) {
 }
 
 SerializeOpts kDefaultOpts{
-    .indent = 2, .separators = {":", ","},
+    .indent = 2,
+    .separators = {":", ","},
 };
 
 // -----------------------------------------------------------------------------
@@ -504,7 +504,7 @@ int BufPrinter::operator()(const char* fmt, va_list args) {
     writelen = end_ - write;
   }
 
-  return vsnprintf(write, writelen, fmt, args);
+  return vsnprintf(write, writelen, fmt, args); // NOLINT
 }
 
 int BufPrinter::operator()(const char* fmt, ...) {

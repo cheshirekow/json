@@ -1,11 +1,12 @@
 // Copyright 2018 Josh Bialkowski <josh.bialkowski@gmail.com>
 #include <array>
+
 #include <gtest/gtest.h>
 #include <re2/re2.h>
 
 #include "json/item.h"
 
-using namespace json;
+using namespace json;  // NOLINT
 
 TEST(ParserTest, Re2CanParseJSONNumbers) {
   int64_t integer;
@@ -71,7 +72,7 @@ TEST(ItemParserTest, TestKnownParsings) {
 
   Error parse_error{};
   item::ItemParser parser(g_item_store_.begin(), g_item_store_.end());
-  for (size_t idx = 0; idx < ntokens; ++idx) {
+  for (size_t idx = 0; idx < static_cast<size_t>(ntokens); ++idx) {
     ASSERT_EQ(0, parser.Consume(g_token_store_[idx], &parse_error))
         << "Error(" << parse_error.code << "): " << parse_error.msg
         << " for token " << idx;

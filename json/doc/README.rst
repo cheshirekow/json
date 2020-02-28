@@ -1,6 +1,6 @@
-=====
-jjson
-=====
+====
+json
+====
 
 A C++ library for working with JavaScript Object Notation.
 
@@ -11,7 +11,8 @@ Low-level API
 There is a straight-forward, low level API that you may find suitable for
 working with JSON documents. It follows a typical lexer / parser pattern. You
 can manage the lex and parse steps separately with ``json::Scanner`` and
-``json::Parser``, or you can you use the thin combination ``json::LexerParser``.
+``json::Parser``, or you can you use the thin combination
+``json::LexerParser``.
 
 To work with the parse stream from a text document:
 
@@ -187,15 +188,16 @@ json documents.
 
 ::
 
-    ./json/json
-    ===========
-    version: 0.0.1
+    ====
+    json
+    ====
+    version: 0.2.0
     author : Josh Bialkowski <josh.bialkowski@gmail.com>
     copyright: (C) 2018
 
-    ./json/json [-h/--help] [-v/--version] <command>
+    json [-h/--help] [-v/--version] <command>
 
-    Demonstrates the usage of the jjson library to lex and parse JSON data
+    Demonstrates the usage of the json library to lex and parse JSON data
 
     Flags:
     ------
@@ -204,44 +206,12 @@ json documents.
 
     Positionals:
     ------------
-    command             see subcommands
+    command             Each subcommand has it's own options and arguments, see
+                        individual subcommand help.
 
     Subcommands:
-    ============
-
-    Subcommand `lex`
-    lex [-h/--help] [infile]
-
-    Lex the file and dump token information
-    ----
-    -h  --help          print this help message
-    ----
-    infile              Path to input, '-' for stdin
-
-    Subcommand `markup`
-    markup [-h/--help] [-o/--omit-template] [infile]
-
-    Parse and dump the contents with HTML markup
-    ----
-    -h  --help          print this help message
-    -o  --omit-template output just the content
-    ----
-    infile              Path to input, '-' for stdin
-
-    Subcommand `parse`
-    parse [-h/--help] [infile]
-
-    Parse the file and dump actionable parse events
-    ----
-    -h  --help          print this help message
-    ----
-    infile              Path to input, '-' for stdin
-
-    Subcommand `verify`
-    verify [-h/--help] [infile]
-
-    Parse the file and exit with 0 if it's valid json
-    ----
-    -h  --help          print this help message
-    ----
-    infile              Path to input, '-' for stdin
+    ------------
+    lex                 Lex the file and dump token information
+    markup              Parse and dump the contents with HTML markup
+    parse               Parse the file and dump actionable parse events
+    verify              Parse the file and exit with 0 if it's valid json

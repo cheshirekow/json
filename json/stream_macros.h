@@ -56,6 +56,10 @@
 #define JSON_FILL() \
   (), (), (), (), (), (), (), (), (), (), (), (), (), (), (), (), (), (), (), ()
 
+// -----------------------------------------------------------------------------
+// JSON_MAKE_CASES()
+// -----------------------------------------------------------------------------
+
 // This is the actual meat of the macro system: simply a case statement to
 // dispatch the appropriate parser for the given field (by name)
 #define JSON_CASE_IF_NOT_PAREN_0(key)     \
@@ -103,6 +107,10 @@
 // Generate a case statement for each argument
 #define JSON_MAKE_CASES(...) JSON_MAKE_CASES_(__VA_ARGS__, JSON_FILL())
 
+// -----------------------------------------------------------------------------
+// JSON_MAKE_EMITS()
+// -----------------------------------------------------------------------------
+
 #define JSON_EMIT_IF_NOT_PAREN_0(key) \
   EmitField(#key, value.key, opts, depth, out);
 
@@ -148,6 +156,93 @@
 #define JSON_MAKE_EMITS_(...) JSON_MAKE_EMITS_N(__VA_ARGS__)
 #define JSON_MAKE_EMITS(...) JSON_MAKE_EMITS_(__VA_ARGS__, JSON_FILL())
 
+// -----------------------------------------------------------------------------
+// JSON_MAKE_WALKS()
+// -----------------------------------------------------------------------------
+
+#define JSON_WALK_IF_NOT_PAREN_0(key)   \
+  event.typeno = WalkEvent::OBJECT_KEY; \
+  walker->ConsumeEvent(event);          \
+  walker->ConsumeValue(#key);           \
+  event.typeno = WalkEvent::VALUE;      \
+  walker->ConsumeEvent(event);          \
+  WalkValue(value.key, opts, walker);
+
+#define JSON_WALK_IF_NOT_PAREN_1(key)
+#define JSON_WALK_IF_NOT_PAREN(x) \
+  JSON_CAT(JSON_WALK_IF_NOT_PAREN_, JSON_IS_PAREN(x))(x)
+
+#define JSON_MAKE_WALKS_N(_00, _01, _02, _03, _04, _05, _06, _07, _08, _09, \
+                          _10, _11, _12, _13, _14, _15, _16, _17, _18, _19, \
+                          ...)                                              \
+  JSON_WALK_IF_NOT_PAREN(_00)                                               \
+  JSON_WALK_IF_NOT_PAREN(_01)                                               \
+  JSON_WALK_IF_NOT_PAREN(_02)                                               \
+  JSON_WALK_IF_NOT_PAREN(_03)                                               \
+  JSON_WALK_IF_NOT_PAREN(_04)                                               \
+  JSON_WALK_IF_NOT_PAREN(_05)                                               \
+  JSON_WALK_IF_NOT_PAREN(_06)                                               \
+  JSON_WALK_IF_NOT_PAREN(_07)                                               \
+  JSON_WALK_IF_NOT_PAREN(_08)                                               \
+  JSON_WALK_IF_NOT_PAREN(_09)                                               \
+  JSON_WALK_IF_NOT_PAREN(_10)                                               \
+  JSON_WALK_IF_NOT_PAREN(_11)                                               \
+  JSON_WALK_IF_NOT_PAREN(_12)                                               \
+  JSON_WALK_IF_NOT_PAREN(_13)                                               \
+  JSON_WALK_IF_NOT_PAREN(_14)                                               \
+  JSON_WALK_IF_NOT_PAREN(_15)                                               \
+  JSON_WALK_IF_NOT_PAREN(_16)                                               \
+  JSON_WALK_IF_NOT_PAREN(_17)                                               \
+  JSON_WALK_IF_NOT_PAREN(_18)                                               \
+  JSON_WALK_IF_NOT_PAREN(_19)
+
+#define JSON_MAKE_WALKS_(...) JSON_MAKE_WALKS_N(__VA_ARGS__)
+#define JSON_MAKE_WALKS(...) JSON_MAKE_WALKS_(__VA_ARGS__, JSON_FILL())
+
+// -----------------------------------------------------------------------------
+// JSON_MAKE_WALKS_MUTABLE()
+// -----------------------------------------------------------------------------
+
+#define JSON_WALK_MUTABLE_IF_NOT_PAREN_0(key) \
+  event.typeno = WalkEvent::OBJECT_KEY;       \
+  walker->ConsumeEvent(event);                \
+  walker->ConsumeValue(#key);                 \
+  event.typeno = WalkEvent::VALUE;            \
+  walker->ConsumeEvent(event);                \
+  WalkValue(opts, &value->key, walker);
+
+#define JSON_WALK_MUTABLE_IF_NOT_PAREN_1(key)
+#define JSON_WALK_MUTABLE_IF_NOT_PAREN(x) \
+  JSON_CAT(JSON_WALK_MUTABLE_IF_NOT_PAREN_, JSON_IS_PAREN(x))(x)
+
+#define JSON_MAKE_WALKS_MUTABLE_N(_00, _01, _02, _03, _04, _05, _06, _07, _08, \
+                                  _09, _10, _11, _12, _13, _14, _15, _16, _17, \
+                                  _18, _19, ...)                               \
+  JSON_WALK_MUTABLE_IF_NOT_PAREN(_00)                                          \
+  JSON_WALK_MUTABLE_IF_NOT_PAREN(_01)                                          \
+  JSON_WALK_MUTABLE_IF_NOT_PAREN(_02)                                          \
+  JSON_WALK_MUTABLE_IF_NOT_PAREN(_03)                                          \
+  JSON_WALK_MUTABLE_IF_NOT_PAREN(_04)                                          \
+  JSON_WALK_MUTABLE_IF_NOT_PAREN(_05)                                          \
+  JSON_WALK_MUTABLE_IF_NOT_PAREN(_06)                                          \
+  JSON_WALK_MUTABLE_IF_NOT_PAREN(_07)                                          \
+  JSON_WALK_MUTABLE_IF_NOT_PAREN(_08)                                          \
+  JSON_WALK_MUTABLE_IF_NOT_PAREN(_09)                                          \
+  JSON_WALK_MUTABLE_IF_NOT_PAREN(_10)                                          \
+  JSON_WALK_MUTABLE_IF_NOT_PAREN(_11)                                          \
+  JSON_WALK_MUTABLE_IF_NOT_PAREN(_12)                                          \
+  JSON_WALK_MUTABLE_IF_NOT_PAREN(_13)                                          \
+  JSON_WALK_MUTABLE_IF_NOT_PAREN(_14)                                          \
+  JSON_WALK_MUTABLE_IF_NOT_PAREN(_15)                                          \
+  JSON_WALK_MUTABLE_IF_NOT_PAREN(_16)                                          \
+  JSON_WALK_MUTABLE_IF_NOT_PAREN(_17)                                          \
+  JSON_WALK_MUTABLE_IF_NOT_PAREN(_18)                                          \
+  JSON_WALK_MUTABLE_IF_NOT_PAREN(_19)
+
+#define JSON_MAKE_WALKS_MUTABLE_(...) JSON_MAKE_WALKS_MUTABLE_N(__VA_ARGS__)
+#define JSON_MAKE_WALKS_MUTABLE(...) \
+  JSON_MAKE_WALKS_MUTABLE_(__VA_ARGS__, JSON_FILL())
+
 // ----------------------------------------------------------------------------
 // End: Ugly Macro Implementation Details
 // ----------------------------------------------------------------------------
@@ -182,10 +277,6 @@
   } /* namespace stream */                                                 \
   } /* namespace json */
 
-#define JSON_DECL(OutType) \
-  JSON_DECLPARSE(OutType)  \
-  JSON_DECLEMIT(OutType)
-
 #define JSON_DECLEMIT(OutType)                                    \
   namespace json {                                                \
   namespace stream {                                              \
@@ -210,6 +301,49 @@
   } /* namespace stream */                                        \
   } /* namespace json */
 
+#define JSON_DECLWALK(OutType)                                           \
+  namespace json {                                                       \
+  namespace stream {                                                     \
+  template <class T>                                                     \
+  void WalkValue(const OutType& value, const WalkOpts& opts, T* walker); \
+  template <class T>                                                     \
+  void WalkValue(const WalkOpts& opts, OutType* value, T* walker);       \
+  } /* namespace stream */                                               \
+  } /* namespace json */
+
+#define JSON_DEFNWALK(OutType, ...)                                       \
+  namespace json {                                                        \
+  namespace stream {                                                      \
+                                                                          \
+  template <class T>                                                      \
+  void WalkValue(const OutType& value, const WalkOpts& opts, T* walker) { \
+    WalkEvent event;                                                      \
+    event.typeno = WalkEvent::LIST_BEGIN;                                 \
+    walker->ConsumeEvent(event);                                          \
+    JSON_MAKE_WALKS(__VA_ARGS__);                                         \
+    event.typeno = WalkEvent::LIST_END;                                   \
+    walker->ConsumeEvent(event);                                          \
+  }                                                                       \
+                                                                          \
+  template <class T>                                                      \
+  void WalkValue(const WalkOpts& opts, OutType* value, T* walker) {       \
+    WalkEvent event;                                                      \
+    event.typeno = WalkEvent::LIST_BEGIN;                                 \
+    walker->ConsumeEvent(event);                                          \
+    JSON_MAKE_WALKS_MUTABLE(__VA_ARGS__);                                 \
+    event.typeno = WalkEvent::LIST_END;                                   \
+    walker->ConsumeEvent(event);                                          \
+  }                                                                       \
+                                                                          \
+  } /* namespace stream */                                                \
+  } /* namespace json */
+
+#define JSON_DECL(OutType) \
+  JSON_DECLPARSE(OutType)  \
+  JSON_DECLEMIT(OutType)   \
+  JSON_DECLWALK(OutType)
+
 #define JSON_DEFN(OutType, ...)        \
   JSON_DEFNPARSE(OutType, __VA_ARGS__) \
-  JSON_DEFNEMIT(OutType, __VA_ARGS__)
+  JSON_DEFNEMIT(OutType, __VA_ARGS__)  \
+  JSON_DEFNWALK(OutType, __VA_ARGS__)

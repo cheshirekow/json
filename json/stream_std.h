@@ -7,92 +7,159 @@
 #include <string>
 #include <vector>
 
+#include <fmt/format.h>
+#include <fmt/ostream.h>
+#include <glog/logging.h>
+
+#include "json/emit_std.h"
+#include "json/parse_std.h"
 #include "json/stream.h"
 
 namespace json {
 namespace stream {
 
 // -----------------------------------------------------------------------------
-//    High level API
+//    WalkValue Overloads
 // -----------------------------------------------------------------------------
 
-// Convenience entry point. Will serialize the object twice. Once to get the
-// size of the necessary buffer, and second with a buffer of the appropriate
-// size.
-template <typename T>
-std::string Emit(const T& obj, const SerializeOpts& opts=kDefaultOpts);
+template <class U>
+void WalkValue(const std::string& value, const WalkOpts& opts, U* walker);
+
+template <class T, class Allocator, class U>
+void WalkValue(const std::list<T, Allocator>& value, const WalkOpts& opts,
+               U* walker);
+
+template <class Key, class Compare, class Allocator, class U>
+void WalkValue(const std::set<Key, Compare, Allocator>& value,
+               const WalkOpts& opts, U* walker);
+
+template <class Key, class T, class Compare, class Allocator, class U>
+void WalkValue(const std::map<Key, T, Compare, Allocator>& value,
+               const WalkOpts& opts, U* walker);
+
+template <class T, class Allocator, class U>
+void WalkValue(const std::vector<T, Allocator>& value, const WalkOpts& opts,
+               U* walker);
+
+template <class U>
+void WalkValue(const WalkOpts& opts, std::string* value, U* walker);
+
+template <class T, class Allocator, class U>
+void WalkValue(const WalkOpts& opts, std::list<T, Allocator>* value, U* walker);
+
+template <class Key, class Compare, class Allocator, class U>
+void WalkValue(const WalkOpts& opts, std::set<Key, Compare, Allocator>* value,
+               U* walker);
+
+template <class Key, class T, class Compare, class Allocator, class U>
+void WalkValue(const WalkOpts& opts,
+               std::map<Key, T, Compare, Allocator>* value, U* walker);
+
+template <class T, class Allocator, class U>
+void WalkValue(const WalkOpts& opts, std::vector<T, Allocator>* value,
+               U* walker);
+
+}  // namespace stream
+}  // namespace json
+
+//
+//
+//
+// -----------------------------------------------------------------------------
+//    Template Implementations
+// -----------------------------------------------------------------------------
+//
+//
+//
+
+namespace json {
+namespace stream {
 
 // -----------------------------------------------------------------------------
-//    Parser Helpers
+//    WalkValue Overloads
 // -----------------------------------------------------------------------------
 
-void ParseString(const Token& token, std::string* value);
+template <class U>
+void WalkValue(const std::string& value, const WalkOpts& opts, U* walker) {
+  walker->ConsumeValue(value);
+}
 
-// Parse any container that implements the standard insertable concept.
-// In particular, `std::insert_iterator(&container, container->begin())`
-// can be constructed.
-template <typename T>
-void ParseInsertable(LexerParser* stream, T* obj);
+template <class T, class Allocator, class U>
+void WalkValue(const std::list<T, Allocator>& value, const WalkOpts& opts,
+               U* walker) {
+  WalkIterable(value, opts, walker);
+}
 
-// -----------------------------------------------------------------------------
-//    Parser Overloads
-// -----------------------------------------------------------------------------
+template <class Key, class Compare, class Allocator, class U>
+void WalkValue(const std::set<Key, Compare, Allocator>& value,
+               const WalkOpts& opts, U* walker) {
+  WalkIterable(value, opts, walker);
+}
 
-void ParseValue(const Event& event, LexerParser* stream, std::string* value);
+template <class Key, class T, class Compare, class Allocator, class U>
+void WalkValue(const std::map<Key, T, Compare, Allocator>& value,
+               const WalkOpts& opts, U* walker) {
+  WalkEvent event;
+  event.typeno = WalkEvent::LIST_BEGIN;
+  walker->ConsumeEvent(event);
+  for (auto iter = value.begin(); iter != value.end(); ++iter) {
+    event.typeno = WalkEvent::OBJECT_KEY;
+    walker->ConsumeEvent(event);
+    walker->ConsumeValue(iter->first);
+    event.typeno = WalkEvent::VALUE;
+    walker->ConsumeEvent(event);
+    WalkValue(iter->second, opts, walker);
+  }
+  event.typeno = WalkEvent::LIST_END;
+  walker->ConsumeEvent(event);
+}
 
-template <class T, class Allocator>
-void ParseValue(const Event& event, LexerParser* stream,
-                std::list<T, Allocator>* value);
+template <class T, class Allocator, class U>
+void WalkValue(const std::vector<T, Allocator>& value, const WalkOpts& opts,
+               U* walker) {
+  WalkIterable(opts, value, walker);
+}
 
-template <class Key, class T, class Compare, class Allocator>
-void ParseValue(const Event& entry_event, LexerParser* stream,
-                std::map<Key, T, Compare, Allocator>* out);
+template <class U>
+void WalkValue(const WalkOpts& opts, std::string* value, U* walker) {
+  walker->ConsumeValue(value);
+}
 
-template <class Key, class Compare, class Allocator>
-void ParseValue(const Event& event, LexerParser* stream,
-                std::set<Key, Compare, Allocator>* value);
+template <class T, class Allocator, class U>
+void WalkValue(const WalkOpts& opts, std::list<T, Allocator>* value,
+               U* walker) {
+  WalkIterable(opts, value, walker);
+}
 
-template <class T, class Allocator>
-void ParseValue(const Event& event, LexerParser* stream,
-                std::vector<T, Allocator>* value);
+template <class Key, class Compare, class Allocator, class U>
+void WalkValue(const WalkOpts& opts, std::set<Key, Compare, Allocator>* value,
+               U* walker) {
+  WalkIterable(opts, value, walker);
+}
 
-void ParseValue(const Event& event, LexerParser* stream, std::string* value);
+template <class Key, class T, class Compare, class Allocator, class U>
+void WalkValue(const WalkOpts& opts,
+               std::map<Key, T, Compare, Allocator>* value, U* walker) {
+  WalkEvent event;
+  event.typeno = WalkEvent::LIST_BEGIN;
+  walker->ConsumeEvent(event);
+  for (auto iter = value->begin(); iter != value->end(); ++iter) {
+    event.typeno = WalkEvent::OBJECT_KEY;
+    walker->ConsumeEvent(event);
+    walker->ConsumeValue(iter->first);
+    event.typeno = WalkEvent::VALUE;
+    walker->ConsumeEvent(event);
+    WalkValue(opts, &iter->second, walker);
+  }
+  event.typeno = WalkEvent::LIST_END;
+  walker->ConsumeEvent(event);
+}
 
-// -----------------------------------------------------------------------------
-//    Emitter Helpers
-// -----------------------------------------------------------------------------
-
-void EmitString(const std::string& value, BufPrinter* out);
-
-// Emit objects from any container that implements the standard iterable
-// concept (i.e. `.begin()` and `.end()` return iterator of some type that
-// deferences to `::value_type`.
-template <typename T>
-void EmitIterable(const T* obj, const SerializeOpts& opts, size_t depth,
-                  BufPrinter* out);
-
-// -----------------------------------------------------------------------------
-//    Emitter Overloads
-// -----------------------------------------------------------------------------
-
-void EmitValue(const std::string& value, const SerializeOpts& opts,
-               size_t depth, BufPrinter* out);
-
-template <class T, class Allocator>
-void EmitValue(const std::list<T, Allocator>& value, const SerializeOpts& opts,
-               size_t depth, BufPrinter* out);
-
-template <class Key, class Compare, class Allocator>
-void EmitValue(const std::set<Key, Compare, Allocator>& value,
-               const SerializeOpts& opts, size_t depth, BufPrinter* out);
-
-template <class Key, class T, class Compare, class Allocator>
-void EmitValue(const std::map<Key, T, Compare, Allocator>& value,
-               const SerializeOpts& opts, size_t depth, BufPrinter* out);
-
-template <class T, class Allocator>
-void EmitValue(const std::vector<T, Allocator>& value,
-               const SerializeOpts& opts, size_t depth, BufPrinter* out);
+template <class T, class Allocator, class U>
+void WalkValue(const WalkOpts& opts, std::vector<T, Allocator>* value,
+               U* walker) {
+  WalkIterable(opts, value, walker);
+}
 
 }  // namespace stream
 }  // namespace json

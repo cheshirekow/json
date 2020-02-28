@@ -66,40 +66,43 @@ int main(int argc, char** argv) {
 
 // clang-format off
 #ifdef __clang__
-  parser.AddArgument("integer", &int_args, {
-    .nargs_ = "+",
-    .help_ = "an integer for the accumulator",
-    .metavar_ = "N",
-    .choices_ = {1, 2, 3, 4},
+  parser.AddArgument<int>("integer", nullptr, {
+     .nargs = "+",
+     .choices = {1, 2, 3, 4},
+     .dest = &int_args,
+     .help = "an integer for the accumulator",
+     .metavar = "N",
   });
 
   parser.AddArgument("-s", "--sum", &accumulate, {
-    .action_ = "store_const",
+    .action = "store_const",
     .const_ = sum_fn,
     .default_ = max_fn,
-    .help_ = "sum the integers (default: find the max)",
+    .help = "sum the integers (default: find the max)",
   });
 
 #else
   parser.AddArgument("integer", &int_args, {
-    .action_ = "store",
-    .nargs_ = "+",
-    .const_ = argue::kNone,
-    .default_ = argue::kNone,
-    .choices_ = {1, 2, 3, 4},
-    .required_ = false,
-    .help_ = "an integer for the accumulator",
-    .metavar_ = "N",
+    .action = "store",
+    .nargs = "+",
+    .const_ = {},
+    .default_ = {},
+    .choices = {1, 2, 3, 4},
+    .dest = {},
+    .required = false,
+    .help = "an integer for the accumulator",
+    .metavar = "N",
   });
 
   parser.AddArgument("-s", "--sum", &accumulate, {
-    .action_ = "store_const",
-    .nargs_ = "",
+    .action = "store_const",
+    .nargs = "",
     .const_ = sum_fn,
     .default_ = max_fn,
-    .choices_ = {},
-    .required_ = false,
-    .help_ = "sum the integers (default: find the max)",
+    .choices = {},
+    .dest = {},
+    .required = false,
+    .help = "sum the integers (default: find the max)",
   });
 
 #endif

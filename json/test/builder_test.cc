@@ -3,19 +3,20 @@
 
 #include "json/builder.h"
 
-using namespace json;
+using namespace json;  // NOLINT
 
 TEST(BuilderTest, SerializeTest) {
-  using namespace json::insource;
-  Variant tree =  //
-      json::Build(O{"hello", 123, "world", O{"foo", O{
-                                                        "far", 123,      //
-                                                        "fuz", "hello",  //
-                                                        "fur", 42.7e2,   //
-                                                        "fox", true,     //
-                                                        "fut", false,    //
-                                                        "fit", nullptr   //
-                                                    }}});
+  using namespace json::insource;  // NOLINT
+  Variant tree =                   //
+      json::Build(O{"hello", 123, "world",
+                    O{"foo", O{
+                                 "far", 123,      //
+                                 "fuz", "hello",  //
+                                 "fur", 42.7e2,   //
+                                 "fox", true,     //
+                                 "fut", false,    //
+                                 "fit", nullptr   //
+                             }}});
 
   ASSERT_EQ(tree.typeno, variant::OBJECT);
   ASSERT_EQ(tree["hello"].typeno, variant::INTEGER);
@@ -26,16 +27,17 @@ TEST(BuilderTest, SerializeTest) {
 }
 
 TEST(BuilderTest, InSourceKnownTrees) {
-  using namespace json::insource;
-  Variant tree =  //
-      json::Build(O{"hello", 123, "world", O{"foo", O{
-                                                        "far", 123,      //
-                                                        "fuz", "hello",  //
-                                                        "fur", 42.7e2,   //
-                                                        "fox", true,     //
-                                                        "fut", false,    //
-                                                        "fit", nullptr   //
-                                                    }}});
+  using namespace json::insource;  // NOLINT
+  Variant tree =                   //
+      json::Build(O{"hello", 123, "world",
+                    O{"foo", O{
+                                 "far", 123,      //
+                                 "fuz", "hello",  //
+                                 "fur", 42.7e2,   //
+                                 "fox", true,     //
+                                 "fut", false,    //
+                                 "fit", nullptr   //
+                             }}});
 
   std::string expect1 =
       "{\"hello\": 123,\"world\": {\"foo\": {\"far\": 123,\"fit\": "

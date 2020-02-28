@@ -3,7 +3,7 @@
 
 #include "json/variant.h"
 
-using namespace json;
+using namespace json;  // NOLINT
 
 TEST(VariantTest, ManuallyBuildKnownTrees) {
   Variant bar{static_cast<int64_t>(123)};

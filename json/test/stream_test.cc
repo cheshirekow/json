@@ -9,8 +9,8 @@
 #include <re2/stringpiece.h>
 
 #include "json/stream.h"
-#include "json/stream_std.h"
 #include "json/stream_macros.h"
+#include "json/stream_std.h"
 
 struct TestA {
   struct {
@@ -56,6 +56,20 @@ struct TestB {
   } xbaz[3];
 };
 
+struct TestC {
+  int32_t a = 1;
+  int32_t b = 2;
+
+  struct C {
+    float d = 3.0f;
+    float e = 4.0f;
+
+    struct F {
+      uint32_t g = 5;
+    } f;
+  } c;
+};
+
 JSON_DECL(decltype(TestA::foo));
 JSON_DECL(decltype(TestA::bar));
 JSON_DECL(TestA::Boz);
@@ -65,8 +79,11 @@ JSON_DECL(decltype(TestB::xbar));
 JSON_DECL(TestB::XBaz);
 JSON_DECL(TestB);
 
+JSON_DECL(TestC::C::F);
+JSON_DECL(TestC::C);
+JSON_DECL(TestC);
+
 #include "json/stream_tpl.h"
-#include "json/stream_std_tpl.h"
 
 JSON_DEFN(decltype(TestA::foo), a, b, e, f);
 JSON_DEFN(decltype(TestA::bar), c, d);
@@ -77,6 +94,9 @@ JSON_DEFN(decltype(TestB::xbar), a, b);
 JSON_DEFN(TestB::XBaz, a, b);
 JSON_DEFN(TestB, a, b, c, d, e, f, g, h, i, j, k, l, xbar, xbaz);
 
+JSON_DEFN(TestC::C::F, g);
+JSON_DEFN(TestC::C, d, e, f);
+JSON_DEFN(TestC, a, b, c);
 
 TEST(StreamTest, BasicTest) {
   const char test_str[] =
@@ -242,4 +262,79 @@ TEST(StreamTest, ParseTest) {
   EXPECT_EQ(false, obj.j);
   EXPECT_EQ(2, obj.k[0]);
   EXPECT_EQ(std::string("world"), std::string(obj.l));
+}
+
+class TestWalker {
+ public:
+  void ConsumeEvent(const json::WalkEvent& event) {
+    switch (event.typeno) {
+      case json::WalkEvent::LIST_END:
+      case json::WalkEvent::OBJECT_END:
+        if (key_path_.size()) {
+          key_path_.pop_back();
+        }
+
+      default:
+        break;
+    }
+    prev_event_ = event.typeno;
+  }
+
+  void ConsumeValue(float val) {
+    value_map_[GetActiveKey()] = val;
+    key_path_.pop_back();
+  }
+
+  void ConsumeValue(int32_t val) {
+    value_map_[GetActiveKey()] = val;
+    key_path_.pop_back();
+  }
+
+  void ConsumeValue(uint32_t val) {
+    value_map_[GetActiveKey()] = val;
+    key_path_.pop_back();
+  }
+
+  void ConsumeValue(const std::string& key) {
+    if (prev_event_ == json::WalkEvent::OBJECT_KEY) {
+      key_path_.push_back(key);
+    }
+  }
+
+  std::map<std::string, int64_t> value_map_;
+
+ private:
+  std::string GetActiveKey() {
+    std::stringstream strm;
+    auto iter = key_path_.begin();
+    if (iter != key_path_.end()) {
+      strm << *iter;
+      ++iter;
+    }
+    for (; iter != key_path_.end(); ++iter) {
+      strm << "." << *iter;
+    }
+    return strm.str();
+  }
+
+  std::vector<std::string> key_path_;
+  json::WalkEvent::TypeNo prev_event_;
+};
+
+TEST(StreamTest, WalkTest) {
+  TestC test_obj{};
+  TestWalker walker;
+  json::stream::Walk(test_obj, {}, &walker);
+
+  ASSERT_EQ(5, walker.value_map_.size());
+  ASSERT_FALSE(walker.value_map_.find("a") == walker.value_map_.end());
+  ASSERT_EQ(1, walker.value_map_["a"]);
+  ASSERT_FALSE(walker.value_map_.find("b") == walker.value_map_.end());
+  ASSERT_EQ(2, walker.value_map_["b"]);
+  ASSERT_FALSE(walker.value_map_.find("c.d") == walker.value_map_.end());
+  ASSERT_EQ(3, walker.value_map_["c.d"]);
+  ASSERT_FALSE(walker.value_map_.find("c.e") == walker.value_map_.end());
+  ASSERT_EQ(4, walker.value_map_["c.e"]);
+  ASSERT_FALSE(walker.value_map_.find("c.f.g") == walker.value_map_.end());
+  ASSERT_EQ(5, walker.value_map_["c.f.g"]);
 }

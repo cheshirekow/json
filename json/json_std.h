@@ -1,3 +1,5 @@
+// Copyright 2018 Josh Bialkowski <josh.bialkowski@gmail.com>
+#pragma once
 #include "json/json.h"
 
 namespace json {

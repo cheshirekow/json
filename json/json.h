@@ -8,8 +8,8 @@
 #include <re2/set.h>
 #include <re2/stringpiece.h>
 
-#define JJSON_VERSION \
-  { 0, 2, 0 }
+#define JSON_VERSION \
+  { 0, 2, 1 }
 
 // Tools for parsing and emitting JSON formatted data
 namespace json {
@@ -226,6 +226,28 @@ int Verify(const re2::StringPiece& source, Error* error = nullptr);
 struct SerializeOpts {
   size_t indent;          //< Number of spaces to use for indent
   char separators[2][3];  //< map and list separators, i.e. ":" and ","
+};
+
+enum WalkOrder { WALK_DEPTHFIRST = 0, WALK_BREADTHFIRST = 1 };
+
+// Options for struct walking/introspection
+struct WalkOpts {
+  WalkOrder walk_order;
+};
+
+struct WalkEvent {
+  enum TypeNo {
+    OBJECT_BEGIN,
+    OBJECT_KEY,
+    OBJECT_END,
+    LIST_BEGIN,
+    LIST_END,
+    VALUE,
+    INVALID,
+  };
+
+  TypeNo typeno;
+  static const char* ToString(TypeNo value);
 };
 
 // Manages sequential `printf`s to a single buffer.
