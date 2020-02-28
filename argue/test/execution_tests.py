@@ -122,8 +122,8 @@ def main():
 
   print("Using exe-path: {}".format(EXE_PATH))
   assert os.path.exists(EXE_PATH), \
-    ("Exe path: {} does not exist with respect to "
-     "{}").format(EXE_PATH, os.getcwd())
+      ("Exe path: {} does not exist with respect to "
+       "{}").format(EXE_PATH, os.getcwd())
   unittest.main(argv=[sys.argv[0]] + args.remainder)
 
 

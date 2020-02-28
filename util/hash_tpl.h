@@ -11,7 +11,7 @@ class Tag {
  public:
   template <uint32_t N>
   // Construct from a string literal
-  constexpr Tag(const char (&str)[N]) : ptr_(str), size_(N - 1) {}
+  constexpr Tag(const char (&str)[N]) : ptr_(str), size_(N - 1) {}  // NOLINT
   constexpr Tag(const char* str, uint32_t len) : ptr_(str), size_(len) {}
 
   // return the character at index i

@@ -2,6 +2,20 @@
 Changelog
 =========
 
+v0.2.4 - in progress
+====================
+
+* Tokenizer and Parser now have peek-ahead capability
+* Don't choke on empty list ("[]") or object ("{}")
+* Fix sink_object and sink_list were inconsistent in whether or not they
+  expected the opening event to have been consumed or not
+* Add parse utilities for parsing lists into standard containers with
+  push_back members
+* Add parse API for lists mirroring the parse API for objects
+* Fix `sink_object` sign error in loop condition
+* Add string type name to the registry entry
+* Add stream specialization for `shared_ptr`
+
 v0.2.4
 ======
 

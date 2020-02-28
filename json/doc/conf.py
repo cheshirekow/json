@@ -6,7 +6,7 @@ proj_dir = os.path.dirname(this_dir)
 root_dir = os.path.dirname(proj_dir)
 
 with open(os.path.join(root_dir, "doc/conf.py")) as infile:
-  exec(infile.read())
+  exec(infile.read())  # pylint: disable=W0122
 
 project = "json"
 docname = project + u'doc'

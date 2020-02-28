@@ -60,7 +60,6 @@ void AddGlogOptions(Parser* parser) {
        /*.help_=*/"Show all VLOG(m) messages for m less or equal the value of "
                   "this flag. Overridable by --vmodule. See the section about "
                   "verbose logging for more detail."});
-
 }
 
 }  // namespace argue

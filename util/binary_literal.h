@@ -52,7 +52,7 @@ constexpr unsigned _BinaryLiteral(const char* str, size_t val = 0) {
 
 template <typename OutputType = unsigned>
 constexpr OutputType BinaryLiteral(const char* str, size_t val = 0) {
-  return StringLength(str) <= NumberOfBits<OutputType>()
+  return detail::StringLength(str) <= detail::NumberOfBits<OutputType>()
              ? detail::_BinaryLiteral(str, val)
              : throw std::logic_error("Binary literal is too long for type");
 }

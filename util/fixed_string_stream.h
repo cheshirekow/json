@@ -1,6 +1,7 @@
 #pragma once
 // Copyright 2019 Josh Bialkowski <josh.bialkowski@gmail.com>
 
+#include <array>
 #include <string>
 
 namespace util {

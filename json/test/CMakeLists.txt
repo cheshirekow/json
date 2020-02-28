@@ -1,7 +1,7 @@
 add_custom_command(
   OUTPUT ${CMAKE_CURRENT_BINARY_DIR}/test_types.h
          ${CMAKE_CURRENT_BINARY_DIR}/test_types.cc
-  COMMAND python3 ${CMAKE_SOURCE_DIR}/json/json_gen.py --outdir
+  COMMAND python ${CMAKE_SOURCE_DIR}/json/json_gen.py --outdir
           ${CMAKE_CURRENT_BINARY_DIR} ${CMAKE_CURRENT_SOURCE_DIR}/test_types.py
   DEPENDS ${CMAKE_CURRENT_SOURCE_DIR}/test_types.py
           ${CMAKE_SOURCE_DIR}/json/json_gen.py #
@@ -87,4 +87,5 @@ format_and_lint(
   variant_test.cc
   frontend_tests.py
   test_types.py
-  CCDEPENDS ${CMAKE_CURRENT_BINARY_DIR}/test_types.h)
+  CCDEPENDS ${CMAKE_CURRENT_BINARY_DIR}/test_types.h
+  EXCLUDE "test_types.*")

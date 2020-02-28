@@ -11,7 +11,7 @@
 #include "util/fixed_string_stream.h"
 
 #define JSON_VERSION \
-  { 0, 2, 4 }
+  { 0, 2, 5 }
 
 // Tools for parsing and emitting JSON formatted data
 namespace json {
@@ -112,15 +112,26 @@ class Scanner {
   // Set the contents to be scanned.
   int begin(const re2::StringPiece& piece);
 
+  // Match and return the next token. Return 0 on success and -1 on error.
+  // if err is not NULL and an error occurs, will be set to a string
+  // describing the error message.
+  int pump(Token* tok, Error* error = nullptr) {
+    return pump_impl(tok, error, /*peek=*/false);
+  }
+
   // Match and return the next token. Return 0 on succes and -1 on error.
   // if err is not NULL and an error occurs, will be set to a string
   // describing the error message.
-  int pump(Token* tok, Error* error = nullptr);
+  int peek(Token* tok, Error* error = nullptr) {
+    return pump_impl(tok, error, /*peek=*/true);
+  }
 
   // Return the current string piece, mostly for debugging purposes
   re2::StringPiece get_piece();
 
  private:
+  int pump_impl(Token* tok, Error* error, bool peek);
+
   re2::StringPiece piece_;
   RE2::Set scanset_;
   std::vector<int> matches_;
@@ -162,10 +173,12 @@ int verify_lex(const re2::StringPiece& source, Error* error);
 class Parser {
  public:
   enum State {
-    PARSING_VALUE = 0,  // Expect '{', '[' or a value literal
-    PARSING_KEY,        // Expect a string literal
-    PARSING_COLON,      // Expect a ':'
-    PARSING_CLOSURE,    // Expect a ']', '}', or ','
+    PARSING_VALUE = 0,    // Expect '{', '[' or a value literal
+    PARSING_LIST_OPEN,    // Expect a value or a closure
+    PARSING_OBJECT_OPEN,  // Expect a key or a closure
+    PARSING_KEY,          // Expect a string literal
+    PARSING_COLON,        // Expect a ':'
+    PARSING_CLOSURE,      // Expect a ']', '}', or ','
     PARSING_ERROR,
   };
 
@@ -181,7 +194,8 @@ class Parser {
    *         * 0 - no actionable event
    *         * -1 - an error has occured, `error` is filled if not null
    */
-  int handle_token(const Token& token, Event* event, Error* error = nullptr);
+  int handle_token(const Token& token, Event* event, Error* error = nullptr,
+                   bool dry_run = false);
 
  protected:
   State state_;
@@ -197,7 +211,15 @@ class LexerParser {
   LexerParser() {}
   int init(Error* error = nullptr);
   int begin(const re2::StringPiece& string);
+
+  // Consume tokens until the next semantic event. Return that event in `event`.
+  // Advance the token stream past the token that emitted that event.
   int get_next_event(Event* event, Error* error = nullptr);
+
+  // Consume tokens until the next semantic event. Return that event in `event`.
+  // Advance the token stream up to but not past the token that generated the
+  // `event`. The next call to `get_next_event` will return the same event.
+  int peek_next_event(Event* event, Error* error = nullptr);
 
  private:
   Scanner scanner_;

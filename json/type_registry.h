@@ -3,6 +3,7 @@
 
 #include <cassert>
 #include <map>
+#include <memory>
 
 #include <fmt/format.h>
 #include <fmt/ostream.h>
@@ -38,6 +39,7 @@ void* get_key() {
 enum SerializeAs {
   SCALAR,
   OBJECT,
+  LIST,
 };
 
 // The value type for the registry mapping. Stores the parse and dump functions
@@ -47,6 +49,7 @@ struct SerializeSpec {
   SerializeAs parse_as;
   void* parse_fun;
   void* dump_fun;
+  std::string name;
 };
 
 class Dumper;
@@ -63,6 +66,13 @@ class Registry {
   template <typename T>
   int register_object(  //
       int (*parse_fn)(const Registry&, const re2::StringPiece&, LexerParser*,
+                      T*) = nullptr,
+      int (*dump_fn)(const T&, Dumper*) = nullptr);
+
+  // Registry a JSON-list serializable type.
+  template <typename T>
+  int register_list(  //
+      int (*parse_fn)(const Registry&, const size_t, LexerParser*,
                       T*) = nullptr,
       int (*dump_fn)(const T&, Dumper*) = nullptr);
 
@@ -84,6 +94,14 @@ class Registry {
     return parse_list<T>(event_stream, &(*arr)[0], &(*arr)[N]);
   }
 
+  template <typename Container>
+  int parse_container(LexerParser* event_stream, Container* out) const;
+
+  // Walk the JSON event stream for the current list and dispatch the item
+  // parser for element in the JSON event stream.
+  template <typename T>
+  int parse_list(LexerParser* event_stream, T* out) const;
+
   // Walk the JSON event stream for the current object and dispatch the field
   // parser for each key, value pair in the JSON event stream.
   template <typename T>
@@ -103,13 +121,33 @@ class Registry {
   template <typename T, size_t N>
   int parse_value(LexerParser* event_stream, T (*out)[N]) const;
 
+  // Specialization for smart pointers
+  template <typename T>
+  int parse_value(LexerParser* event_stream, std::shared_ptr<T>* out) const {
+    *out = std::make_shared<T>();
+    return parse_value(event_stream, out->get());
+  }
+
   template <typename Iterator>
   int dump_list(Iterator begin, Iterator end, Dumper* dumper) const;
+
+  template <typename Container>
+  int dump_container(const Container& container, Dumper* dumper) const {
+    return dump_list(container.begin(), container.end(), dumper);
+  }
 
   template <class T, size_t N>
   int dump_list(const T (&arr)[N], Dumper* dumper) const {
     return dump_list(&arr[0], &arr[N], dumper);
   }
+
+  // Dump a JSON-list to the dumper:
+  // 1. Lookup the dumpitems helper,
+  // 2. dump the list start event,
+  // 3. walk the item list dumping each item (recursively)
+  // 4. dump an list end event.
+  template <typename T>
+  int dump_list(const T& out, Dumper* dumper) const;
 
   // Dump a JSON-object to the dumper:
   // 1. Lookup the dumpfields helper,
@@ -145,6 +183,16 @@ class Registry {
   template <size_t N>
   int dump_value(const char (&arr)[N], Dumper* dumper) const {
     return this->dump_scalar(arr, dumper);
+  }
+
+  // Specialization for smart pointers
+  template <class T>
+  int dump_value(const std::shared_ptr<T>& value, Dumper* dumper) const {
+    if (value) {
+      return dump_value(*value.get(), dumper);
+    } else {
+      dump_value(nullptr, dumper);
+    }
   }
 
  private:
@@ -184,11 +232,21 @@ class Dumper {
   // Push an event notification (e.g. semantic boundaries) to the output
   virtual void dump_event(DumpEvent::TypeNo eventno) = 0;
 
+  // Dump a field whose value is a list stored by a standard container.
+  // Pushes event
+  // notifications for the field key and value followed by the actual
+  // string and value.
+  template <class Container>
+  int dump_container_field(const re2::StringPiece& key, const Container& value);
+
   // Dump a field given it's name (as a string) and value. Pushes event
   // notifications for the field key and value followed by the actual
   // string and value.
   template <class T>
   int dump_field(const re2::StringPiece& key, const T& value);
+
+  template <class T>
+  int dump_item(const T& value);
 
   virtual void dump_primitive(uint8_t value) = 0;
   virtual void dump_primitive(uint16_t value) = 0;
@@ -343,7 +401,19 @@ int Registry::register_object(  //
     int (*dump_fn)(const T&, Dumper*)) {
   void* parse_ptr = reinterpret_cast<void*>(parse_fn);
   void* dump_ptr = reinterpret_cast<void*>(dump_fn);
-  parsers_[get_key<T>()] = SerializeSpec{OBJECT, parse_ptr, dump_ptr};
+  parsers_[get_key<T>()] =
+      SerializeSpec{OBJECT, parse_ptr, dump_ptr, type_string<T>()};
+  return 0;
+}
+
+template <typename T>
+int Registry::register_list(  //
+    int (*parse_fn)(const Registry&, const size_t, LexerParser*, T*),
+    int (*dump_fn)(const T&, Dumper*)) {
+  void* parse_ptr = reinterpret_cast<void*>(parse_fn);
+  void* dump_ptr = reinterpret_cast<void*>(dump_fn);
+  parsers_[get_key<T>()] =
+      SerializeSpec{LIST, parse_ptr, dump_ptr, type_string<T>()};
   return 0;
 }
 
@@ -352,7 +422,8 @@ int Registry::register_scalar(  //
     int (*parse_fn)(const Token&, T*), int (*dump_fn)(const T&, Dumper*)) {
   void* parse_ptr = reinterpret_cast<void*>(parse_fn);
   void* dump_ptr = reinterpret_cast<void*>(dump_fn);
-  parsers_[get_key<T>()] = SerializeSpec{SCALAR, parse_ptr, dump_ptr};
+  parsers_[get_key<T>()] =
+      SerializeSpec{SCALAR, parse_ptr, dump_ptr, type_string<T>()};
   return 0;
 }
 
@@ -404,6 +475,103 @@ int Registry::parse_list(LexerParser* event_stream, T* begin, T* end) const {
     }
   }
   return 0;
+}
+
+template <typename Container>
+int Registry::parse_container(LexerParser* event_stream, Container* out) const {
+  Event event{};
+  Error error{};
+  if (event_stream->get_next_event(&event, &error)) {
+    LOG(WARNING) << fmt::format("In {}, Failed to get JSON list start event",
+                                __PRETTY_FUNCTION__);
+    return error.code;
+  }
+  if (event.typeno != json::Event::LIST_BEGIN) {
+    LOG(WARNING) << fmt::format(
+        "In {}, expected JSON list of {}, but instead got {} at {}:{}",
+        __PRETTY_FUNCTION__, type_string<Container>(),
+        json::Event::to_string(event.typeno), event.token.location.lineno,
+        event.token.location.colno);
+    sink_value(event, event_stream);
+    return 1;
+  }
+
+  int result = 0;
+  while (result == 0) {
+    result = event_stream->peek_next_event(&event, &error);
+    if (result < 0) {
+      LOG(WARNING) << fmt::format("In {}, Failed to peek next JSON list event ",
+                                  __PRETTY_FUNCTION__)
+                   << error.msg;
+      return error.code;
+    }
+    if (event.typeno == json::Event::LIST_END) {
+      event_stream->get_next_event(&event, &error);
+      return 0;
+    }
+
+    typename Container::value_type value;
+    result = this->parse_value(event_stream, &value);
+    // NOTE(josh): this is bad, we can't distinguish between an error and
+    // a stop-iteration.
+    if (result == 0) {
+      out->push_back(value);
+    }
+  }
+
+  return 0;
+}
+
+template <typename T>
+int Registry::parse_list(LexerParser* event_stream, T* out) const {
+  json::Event event;
+  json::Error error;
+  if (event_stream->get_next_event(&event, &error)) {
+    LOG(WARNING) << fmt::format("In {}, Failed to get JSON object start event",
+                                __PRETTY_FUNCTION__);
+    return error.code;
+  }
+  if (event.typeno != json::Event::LIST_BEGIN) {
+    if (event.typeno != json::Event::LIST_END) {
+      // If we encounter a LIST_END but there is no `error` then it must
+      // mean that we are in the process of parsing a list. In that case
+      // we return 1 so that the list parser terminates it's loop, but
+      // we don't warn or try to sink anything because this is not an error
+      LOG(WARNING) << fmt::format(
+          "Expected JSON object for {}, but instead got {} at {}:{}",
+          type_string<T>(), json::Event::to_string(event.typeno),
+          event.token.location.lineno, event.token.location.colno);
+      sink_value(event, event_stream);
+    }
+    return 1;
+  }
+
+  void* key = get_key<T>();
+  auto iter = parsers_.find(key);
+  if (iter == parsers_.end()) {
+    LOG(WARNING) << "No parser registered for type '" << type_string<T>()
+                 << "', skipping the parse. Program will probably crash later!";
+    sink_value(event, event_stream);
+  }
+  typedef int (*ParseItemFn)(const Registry&, const size_t, LexerParser*, T*);
+  ParseItemFn parse_item =
+      reinterpret_cast<ParseItemFn>(iter->second.parse_fun);
+
+  size_t idx = 0;
+  while (event_stream->peek_next_event(&event, &error) == 0) {
+    if (event.typeno == json::Event::LIST_END) {
+      event_stream->get_next_event(&event, &error);
+      return 0;
+    }
+
+    if (parse_item(*this, idx++, event_stream, out)) {
+      LOG(WARNING) << fmt::format("Unrecognized item ({}) at {}:{}", idx,
+                                  event.token.location.lineno,
+                                  event.token.location.colno);
+    }
+  }
+  LOG(WARNING) << error.msg;
+  return error.code;
 }
 
 template <typename T>
@@ -469,7 +637,9 @@ int Registry::parse_object(LexerParser* event_stream, T* out) const {
           keytoken.location.lineno, keytoken.location.colno);
     }
   }
-  LOG(WARNING) << error.msg;
+  LOG(WARNING) << error.msg
+               << fmt::format(" at {}:{}", event.token.location.lineno,
+                              event.token.location.colno);
   return error.code;
 }
 
@@ -519,10 +689,15 @@ int Registry::parse_value(LexerParser* stream, T* out) const {
                  << "', skipping the parse. Program will probably crash later!";
     sink_value(stream);
   }
-  if (iter->second.parse_as == SCALAR) {
-    return this->parse_scalar(stream, out);
-  } else {
-    return this->parse_object(stream, out);
+  switch (iter->second.parse_as) {
+    case SCALAR:
+      return this->parse_scalar(stream, out);
+    case OBJECT:
+      return this->parse_object(stream, out);
+    case LIST:
+      return this->parse_list(stream, out);
+    default:
+      return 1;
   }
 }
 
@@ -571,13 +746,35 @@ int Registry::dump_list(Iterator begin, Iterator end, Dumper* dumper) const {
 }
 
 template <typename T>
+int Registry::dump_list(const T& obj, Dumper* dumper) const {
+  DumpGuard _guard{dumper, GUARD_LIST};
+
+  void* key = get_key<T>();
+  auto iter = parsers_.find(key);
+  if (iter == parsers_.end()) {
+    LOG(WARNING) << "No specification for type '" << type_string<T>()
+                 << "', dumping empty object. Parse will probably fail later!";
+    return 1;
+  }
+  typedef int (*DumpItemsFn)(const T&, Dumper* dumper);
+  DumpItemsFn dump_items = reinterpret_cast<DumpItemsFn>(iter->second.dump_fun);
+  if (!dump_items) {
+    LOG(WARNING) << "No dumper registered for type '" << type_string<T>()
+                 << "', dumping empty object. Parse will probably fail later!";
+    return 1;
+  }
+  dump_items(obj, dumper);
+  return 0;
+}
+
+template <typename T>
 int Registry::dump_object(const T& obj, Dumper* dumper) const {
   DumpGuard _guard{dumper, GUARD_OBJECT};
 
   void* key = get_key<T>();
   auto iter = parsers_.find(key);
   if (iter == parsers_.end()) {
-    LOG(WARNING) << "No sepcificationfor type '" << type_string<T>()
+    LOG(WARNING) << "No specification for type '" << type_string<T>()
                  << "', dumping empty object. Parse will probably fail later!";
     return 1;
   }
@@ -630,14 +827,24 @@ int Registry::dump_value(const T& value, Dumper* dumper) const {
   auto iter = parsers_.find(key);
   if (iter == parsers_.end()) {
     LOG(WARNING) << "No dumper registered for type '" << type_string<T>()
-                 << "', dumping null. Parse will probably fail!";
+                 << "', with key " << key
+                 << ", dumping null. Parse will probably fail!";
+    for (auto pair : parsers_) {
+      LOG(WARNING) << "  " << static_cast<void*>(pair.first) << ": "
+                   << pair.second.name;
+    }
     dumper->dump_primitive(nullptr);
     return 1;
   }
-  if (iter->second.parse_as == SCALAR) {
-    return this->dump_scalar(value, dumper);
-  } else {
-    return this->dump_object(value, dumper);
+  switch (iter->second.parse_as) {
+    case SCALAR:
+      return this->dump_scalar(value, dumper);
+    case OBJECT:
+      return this->dump_object(value, dumper);
+    case LIST:
+      return this->dump_list(value, dumper);
+    default:
+      return 1;
   }
 }
 
@@ -652,6 +859,23 @@ int Dumper::dump_field(const re2::StringPiece& key, const T& value) {
   result |= registry_->dump_scalar(key, this);
   this->dump_event(DumpEvent::OBJECT_VALUE);
   result |= registry_->dump_value(value, this);
+  return result;
+}
+
+template <class T>
+int Dumper::dump_item(const T& value) {
+  this->dump_event(DumpEvent::LIST_VALUE);
+  return registry_->dump_value(value, this);
+}
+
+template <class Container>
+int Dumper::dump_container_field(const re2::StringPiece& key,
+                                 const Container& value) {
+  int result = 0;
+  this->dump_event(DumpEvent::OBJECT_KEY);
+  result |= registry_->dump_scalar(key, this);
+  this->dump_event(DumpEvent::OBJECT_VALUE);
+  result |= registry_->dump_container(value, this);
   return result;
 }
 

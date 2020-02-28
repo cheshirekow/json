@@ -72,41 +72,44 @@ int sink_value(LexerParser* stream) {
 int sink_value(const Event& event, LexerParser* stream) {
   switch (event.typeno) {
     case json::Event::OBJECT_BEGIN:
-      return sink_object(stream);
+      return sink_object(stream, /*already_open=*/true);
     case json::Event::LIST_BEGIN:
-      return sink_list(stream);
+      return sink_list(stream, /*already_open=*/true);
     case json::Event::VALUE_LITERAL:
       return 0;
     default:
       LOG(WARNING) << fmt::format(
-          "{}:{} Unexpected {} event at {}:{}", __PRETTY_FUNCTION__, __LINE__,
-          json::Event::to_string(event.typeno), event.token.location.lineno,
-          event.token.location.colno);
+          "{}:{} Unexpected {} ({}) event at {}:{}", __PRETTY_FUNCTION__,
+          __LINE__, json::Event::to_string(event.typeno), event.typeno,
+          event.token.location.lineno, event.token.location.colno);
   }
   return 1;
 }
 
-int sink_object(LexerParser* stream) {
+int sink_object(LexerParser* stream, bool already_open) {
   json::Event event;
   json::Error error;
 
-  if (stream->get_next_event(&event, &error) != 0) {
-    LOG(WARNING) << fmt::format(
-        "Expected a JSON object but failed to get the next event, {} at {}:{}",
-        error.msg, __PRETTY_FUNCTION__, __LINE__);
-    return 1;
-  }
+  if (!already_open) {
+    if (stream->get_next_event(&event, &error) != 0) {
+      LOG(WARNING) << fmt::format(
+          "Expected a JSON object but failed to get the next event, {} at "
+          "{}:{}",
+          error.msg, __PRETTY_FUNCTION__, __LINE__);
+      return 1;
+    }
 
-  if (event.typeno != Event::OBJECT_BEGIN) {
-    LOG(WARNING) << fmt::format(
-        "{}:{} Unexpected {} event at {}:{}", __PRETTY_FUNCTION__, __LINE__,
-        json::Event::to_string(event.typeno), event.token.location.lineno,
-        event.token.location.colno);
-    return 1;
+    if (event.typeno != Event::OBJECT_BEGIN) {
+      LOG(WARNING) << fmt::format(
+          "{}:{} Unexpected {} event at {}:{}", __PRETTY_FUNCTION__, __LINE__,
+          json::Event::to_string(event.typeno), event.token.location.lineno,
+          event.token.location.colno);
+      return 1;
+    }
   }
 
   uint32_t object_count = 1;
-  while (stream->get_next_event(&event, &error) != 0) {
+  while (stream->get_next_event(&event, &error) == 0) {
     switch (event.typeno) {
       case json::Event::OBJECT_BEGIN:
         ++object_count;
@@ -126,27 +129,29 @@ int sink_object(LexerParser* stream) {
   return 1;
 }
 
-int sink_list(LexerParser* stream) {
+int sink_list(LexerParser* stream, bool already_open) {
   json::Event event;
   json::Error error;
 
-  if (stream->get_next_event(&event, &error) != 0) {
-    LOG(WARNING) << fmt::format(
-        "Expected a JSON list but failed to get the next event, {} at {}:{}",
-        error.msg, __PRETTY_FUNCTION__, __LINE__);
-    return 1;
-  }
+  if (!already_open) {
+    if (stream->get_next_event(&event, &error) != 0) {
+      LOG(WARNING) << fmt::format(
+          "Expected a JSON list but failed to get the next event, {} at {}:{}",
+          error.msg, __PRETTY_FUNCTION__, __LINE__);
+      return 1;
+    }
 
-  if (event.typeno != Event::LIST_BEGIN) {
-    LOG(WARNING) << fmt::format(
-        "{}:{} Unexpected {} event at {}:{}", __PRETTY_FUNCTION__, __LINE__,
-        json::Event::to_string(event.typeno), event.token.location.lineno,
-        event.token.location.colno);
-    return 1;
+    if (event.typeno != Event::LIST_BEGIN) {
+      LOG(WARNING) << fmt::format(
+          "{}:{} Unexpected {} event at {}:{}", __PRETTY_FUNCTION__, __LINE__,
+          json::Event::to_string(event.typeno), event.token.location.lineno,
+          event.token.location.colno);
+      return 1;
+    }
   }
 
   uint32_t list_count = 1;
-  while (stream->get_next_event(&event, &error) != 0) {
+  while (stream->get_next_event(&event, &error) == 0) {
     switch (event.typeno) {
       case json::Event::LIST_BEGIN:
         ++list_count;

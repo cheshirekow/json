@@ -14,12 +14,14 @@ cc_library(
           "range.hpp",
           "redblack.h",
           "stack_trace.h",
+          "string_util.h",
           "set_operations.hpp",
           "timespec.h",
           "type_string.h"],
     srcs=["linked.cc",
           "redblack.cc",
-          "stack_trace.cc"],
+          "stack_trace.cc",
+          "string_util.cc"],
 )
 
 cc_test(name="bitset_test",

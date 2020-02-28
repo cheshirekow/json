@@ -1,5 +1,6 @@
 // Copyright 2018 Josh Bialkowski <josh.bialkowski@gmail.com>
 #pragma once
+#include <cstdint>
 
 struct TestA {
   struct {

@@ -1,5 +1,6 @@
 #pragma once
 // Copyright 2018 Josh Bialkowski <josh.bialkowski@gmail.com
+#include <cstring>
 #include <string>
 
 template <typename _TypeName>

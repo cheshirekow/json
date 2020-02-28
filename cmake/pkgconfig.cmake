@@ -7,7 +7,8 @@ function(_pkg_query outvar arg)
   execute_process(COMMAND pkg-config --cflags-only-I ${arg}
                   RESULT_VARIABLE _pkg_err
                   OUTPUT_VARIABLE _pkg_out
-                  OUTPUT_STRIP_TRAILING_WHITESPACE)
+                  OUTPUT_STRIP_TRAILING_WHITESPACE
+                  ERROR_QUIET)
   if(NOT _pkg_err EQUAL 0)
     set(pkg_errno 1 PARENT_SCOPE)
     return()
@@ -25,7 +26,8 @@ function(_pkg_query outvar arg)
   execute_process(COMMAND pkg-config --cflags-only-other ${arg}
                   RESULT_VARIABLE _pkg_err
                   OUTPUT_VARIABLE _pkg_out
-                  OUTPUT_STRIP_TRAILING_WHITESPACE)
+                  OUTPUT_STRIP_TRAILING_WHITESPACE
+                  ERROR_QUIET)
   if(NOT _pkg_err EQUAL 0)
     set(pkg_errno 1 PARENT_SCOPE)
     return()
@@ -45,7 +47,8 @@ function(_pkg_query outvar arg)
   execute_process(COMMAND pkg-config --libs-only-L ${arg}
                   RESULT_VARIABLE _pkg_err
                   OUTPUT_VARIABLE _pkg_out
-                  OUTPUT_STRIP_TRAILING_WHITESPACE)
+                  OUTPUT_STRIP_TRAILING_WHITESPACE
+                  ERROR_QUIET)
   if(NOT _pkg_err EQUAL 0)
     set(pkg_errno 1 PARENT_SCOPE)
     return()
@@ -57,7 +60,8 @@ function(_pkg_query outvar arg)
   execute_process(COMMAND pkg-config --libs-only-l ${arg}
                   RESULT_VARIABLE _pkg_err
                   OUTPUT_VARIABLE _pkg_out
-                  OUTPUT_STRIP_TRAILING_WHITESPACE)
+                  OUTPUT_STRIP_TRAILING_WHITESPACE
+                  ERROR_QUIET)
   if(NOT _pkg_err EQUAL 0)
     set(pkg_errno 1 PARENT_SCOPE)
     return()

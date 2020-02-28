@@ -16,7 +16,7 @@ class Tag {
  public:
   template <uint32_t N>
   // Construct from a string literal
-  constexpr Tag(const char (&str)[N]) : ptr_(str), size_(N - 1) {}
+  constexpr Tag(const char (&str)[N]) : ptr_(str), size_(N - 1) {}  // NOLINT
   constexpr Tag(const char* str, size_t len) : ptr_(str), size_(len) {}
   explicit Tag(const re2::StringPiece& str)
       : ptr_(str.begin()), size_(str.size()) {}

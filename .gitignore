@@ -2,8 +2,10 @@
 *.o
 *.so
 
-# unified repo tracking
+# sparse-export stuff
 .gitu
+.sparse-export
+tangent/tooling/sparse-exports
 
 # qt creator
 *.qtc.*
@@ -13,6 +15,7 @@
 
 # python packaging
 *.egg-info/
+build/
 dist/
 
 # pyces build
@@ -30,9 +33,8 @@ bazel-*
 # node package manager
 node_modules
 
-# bazel sucks... 
+# bazel sucks...
 WORKSPACE
 
 # Temp/backup files
 *~
-

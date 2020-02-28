@@ -32,7 +32,7 @@ struct StyleOpts {
   double dot_radius;
 
   StyleOpts();
-  StyleOpts(uint32_t scale);
+  StyleOpts(uint32_t scale);  // NOLINT
   std::string to_string() const;
 };
 

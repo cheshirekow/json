@@ -39,10 +39,10 @@ int sink_value(const Event& event, LexerParser* stream);
 int sink_value(LexerParser* stream);
 
 // Consume an object, ignoring it's contents
-int sink_object(LexerParser* stream);
+int sink_object(LexerParser* stream, bool already_open = false);
 
 // Consume a list, ignoring it's contents
-int sink_list(LexerParser* stream);
+int sink_list(LexerParser* stream, bool already_open = false);
 
 }  // namespace json
 

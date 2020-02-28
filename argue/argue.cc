@@ -885,7 +885,7 @@ int Parser::ParseArgsImpl(std::list<std::string>* args, std::ostream* out) {
           ARGUE_ASSERT(INPUT_ERROR, (flag_iter != short_flags.end()))
               << "Unrecognized short flag: " << query_flag;
           FlagStore store = flag_iter->second;
-          ARGUE_ASSERT(BUG, bool(store.action))
+          ARGUE_ASSERT(BUG, static_cast<bool>(store.action))
               << "Flag " << query_flag
               << " was found in index with empty action pointer";
           store.action->ConsumeArgs(ctx, args, &out);
@@ -905,7 +905,7 @@ int Parser::ParseArgsImpl(std::list<std::string>* args, std::ostream* out) {
         ARGUE_ASSERT(INPUT_ERROR, (flag_iter != long_flags.end()))
             << "Unrecognized long flag: " << ctx.arg;
         FlagStore store = flag_iter->second;
-        ARGUE_ASSERT(BUG, bool(store.action))
+        ARGUE_ASSERT(BUG, static_cast<bool>(store.action))
             << "Flag " << ctx.arg
             << " was found in index with empty action pointer";
         store.action->ConsumeArgs(ctx, args, &out);
@@ -924,7 +924,7 @@ int Parser::ParseArgsImpl(std::list<std::string>* args, std::ostream* out) {
             << args->front() << "'";
         std::shared_ptr<ActionBase> action = positionals.front();
         positionals.pop_front();
-        ARGUE_ASSERT(BUG, bool(action))
+        ARGUE_ASSERT(BUG, static_cast<bool>(action))
             << "positional with empty action pointer";
         action->ConsumeArgs(ctx, args, &out);
         break;

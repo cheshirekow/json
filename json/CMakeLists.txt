@@ -34,8 +34,15 @@ set(json_files
     variant.h
     ${json_sources})
 
-format_and_lint(json ${json_files} CMakeLists.txt doc/CMakeLists.txt
-                test/CMakeLists.txt)
+format_and_lint(
+  json
+  ${json_files}
+  CMakeLists.txt
+  doc/CMakeLists.txt
+  doc/conf.py
+  json_gen.py
+  main.cc
+  EXCLUDE "test/.*")
 
 add_subdirectory(test)
 add_subdirectory(doc)

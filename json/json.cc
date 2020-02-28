@@ -138,7 +138,7 @@ void advance_location(const re2::StringPiece& str, SourceLocation* loc) {
   }
 }
 
-int Scanner::pump(Token* tok, Error* error) {
+int Scanner::pump_impl(Token* tok, Error* error, bool peek) {
   if (piece_.size() < 1) {
     fmt_error(error, Error::LEX_INPUT_FINISHED, loc_)
         << "The input stream is empty. Either parsing is finished or the data "
@@ -156,6 +156,9 @@ int Scanner::pump(Token* tok, Error* error) {
       tok->typeno = Token::PUNCTUATION;
       tok->spelling = piece_.substr(0, 1);
       tok->location = loc_;
+      if (peek) {
+        return 0;
+      }
       piece_ = piece_.substr(1);
       advance_location(tok->spelling, &loc_);
       return 0;
@@ -173,17 +176,23 @@ int Scanner::pump(Token* tok, Error* error) {
   }
 
   auto begin = piece_.begin();
-
   int match_idx = *std::min_element(matches_.begin(), matches_.end());
-  if (!RE2::Consume(&piece_, kScanList[match_idx].pattern)) {
+  re2::StringPiece mutable_piece = piece_;
+  if (!RE2::Consume(&mutable_piece, kScanList[match_idx].pattern)) {
     fmt_error(error, Error::INTERNAL_ERROR, loc_)
         << "A valid token was matched but RE2 was unable to consume it";
     return -1;
   }
-  auto end = piece_.begin();
+  auto end = mutable_piece.begin();
   tok->typeno = kScanList[match_idx].typeno;
   tok->spelling = re2::StringPiece(begin, end - begin);
   tok->location = loc_;
+
+  if (peek) {
+    return 0;
+  }
+
+  piece_ = mutable_piece;
   advance_location(tok->spelling, &loc_);
 
   switch (match_idx) {
@@ -267,13 +276,29 @@ void Parser::reset() {
   group_stack_.clear();
 }
 
-int Parser::handle_token(const Token& tok, Event* event, Error* error) {
+int Parser::handle_token(const Token& tok, Event* event, Error* error,
+                         bool dry_run) {
   event->token = tok;
   if (tok.typeno == Token::WHITESPACE || tok.typeno == Token::COMMENT) {
     return 0;
   }
 
   switch (state_) {
+    case PARSING_LIST_OPEN: {
+      if (tok.typeno == Token::PUNCTUATION && !group_stack_.empty() &&
+          group_stack_.back() == Event::LIST_BEGIN && tok.spelling == "]") {
+        event->typeno = Event::LIST_END;
+        if (dry_run) {
+          return 1;
+        }
+        group_stack_.pop_back();
+        state_ = PARSING_CLOSURE;
+        return 1;
+      } else {
+        // fallthrough
+      }
+    }
+
     case PARSING_VALUE: {
       if (tok.typeno == Token::PUNCTUATION) {
         if (tok.spelling != "{" && tok.spelling != "[") {
@@ -283,21 +308,45 @@ int Parser::handle_token(const Token& tok, Event* event, Error* error) {
         }
 
         if (tok.spelling == "{") {
-          group_stack_.push_back(Event::OBJECT_BEGIN);
-          state_ = PARSING_KEY;
           event->typeno = Event::OBJECT_BEGIN;
+          if (dry_run) {
+            return 1;
+          }
+          group_stack_.push_back(Event::OBJECT_BEGIN);
+          state_ = PARSING_OBJECT_OPEN;
         } else {
-          group_stack_.push_back(Event::LIST_BEGIN);
-          state_ = PARSING_VALUE;
           event->typeno = Event::LIST_BEGIN;
+          if (dry_run) {
+            return 1;
+          }
+          group_stack_.push_back(Event::LIST_BEGIN);
+          state_ = PARSING_LIST_OPEN;
         }
         return 1;
       } else {
         event->typeno = Event::VALUE_LITERAL;
+        if (dry_run) {
+          return 1;
+        }
         state_ = PARSING_CLOSURE;
         return 1;
       }
       break;
+    }
+
+    case PARSING_OBJECT_OPEN: {
+      if (tok.typeno == Token::PUNCTUATION && !group_stack_.empty() &&
+          group_stack_.back() == Event::OBJECT_BEGIN && tok.spelling == "}") {
+        event->typeno = Event::OBJECT_END;
+        if (dry_run) {
+          return 1;
+        }
+        group_stack_.pop_back();
+        state_ = PARSING_CLOSURE;
+        return 1;
+      } else {
+        // fallthrough
+      }
     }
 
     case PARSING_KEY: {
@@ -320,6 +369,10 @@ int Parser::handle_token(const Token& tok, Event* event, Error* error) {
       }
 
       event->typeno = Event::OBJECT_KEY;
+      if (dry_run) {
+        return 1;
+      }
+
       state_ = PARSING_COLON;
       return 1;
     }
@@ -330,6 +383,10 @@ int Parser::handle_token(const Token& tok, Event* event, Error* error) {
             << "Expected a colon (':') but got " << tok.spelling;
         return -1;
       }
+      if (dry_run) {
+        return 0;
+      }
+
       state_ = PARSING_VALUE;
       return 0;
     }
@@ -349,9 +406,16 @@ int Parser::handle_token(const Token& tok, Event* event, Error* error) {
 
       if (tok.spelling == ",") {
         if (group_stack_.back() == Event::LIST_BEGIN) {
+          if (dry_run) {
+            return 0;
+          }
+
           state_ = PARSING_VALUE;
           return 0;
         } else if (group_stack_.back() == Event::OBJECT_BEGIN) {
+          if (dry_run) {
+            return 0;
+          }
           state_ = PARSING_KEY;
           return 0;
         } else {
@@ -368,9 +432,12 @@ int Parser::handle_token(const Token& tok, Event* event, Error* error) {
           return -1;
         }
 
+        event->typeno = Event::LIST_END;
+        if (dry_run) {
+          return 1;
+        }
         group_stack_.pop_back();
         state_ = PARSING_CLOSURE;
-        event->typeno = Event::LIST_END;
         return 1;
       }
 
@@ -381,8 +448,11 @@ int Parser::handle_token(const Token& tok, Event* event, Error* error) {
           return -1;
         }
 
-        group_stack_.pop_back();
         event->typeno = Event::OBJECT_END;
+        if (dry_run) {
+          return 1;
+        }
+        group_stack_.pop_back();
         return 1;
       }
 
@@ -421,8 +491,9 @@ int LexerParser::begin(const re2::StringPiece& string) {
 }
 
 int LexerParser::get_next_event(Event* event, Error* error) {
-  while (true) {
-    int result = scanner_.pump(&token_, error);
+  int result = 0;
+  while (result == 0) {
+    result = scanner_.pump(&token_, error);
     if (result < 0) {
       return result;
     }
@@ -434,7 +505,33 @@ int LexerParser::get_next_event(Event* event, Error* error) {
     if (result > 0) {
       return 0;
     }
+    // If result == 0 then the token did not instigate an event
   }
+  return result;
+}
+
+int LexerParser::peek_next_event(Event* event, Error* error) {
+  int result = 0;
+  while (result == 0) {
+    result = scanner_.peek(&token_, error);
+    if (result < 0) {
+      return result;
+    }
+
+    result = parser_.handle_token(token_, event, error, /*dry_run=*/true);
+    if (result < 0) {
+      return result;
+    }
+    if (result > 0) {
+      return 0;
+    }
+
+    // If result == 0 then the token did not instigate an event. Since it was
+    // non-event producing, we can advance the stream.
+    scanner_.pump(&token_, error);
+    parser_.handle_token(token_, event, error, /*dry_run=*/false);
+  }
+  return 0;
 }
 
 // -----------------------------------------------------------------------------

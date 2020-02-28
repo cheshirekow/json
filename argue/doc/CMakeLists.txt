@@ -1,5 +1,1 @@
-sphinx(argue
-       changelog.rst
-       index.rst
-       todo.rst
-       README.rst)
+sphinx(argue changelog.rst index.rst todo.rst README.rst)

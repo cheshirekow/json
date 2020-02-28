@@ -1,15 +1,22 @@
 # -*- coding: utf-8 -*-
+from __future__ import print_function
+
 import os
 import sphinx_rtd_theme
+import subprocess
+import tempfile
+
 from recommonmark.parser import CommonMarkParser
 from recommonmark.transform import AutoStructify
 
-filepath = os.path.realpath(__file__)
-if os.path.islink(filepath):
-  dirname = os.path.dirname(filepath)
-  _, project = os.path.split(dirname)
-else:
-  project = 'tangentsky'
+project = 'tangentsky'
+thisfile = os.path.realpath(__file__)
+rootdir = globals().get(
+    "rootdir", os.sep.join(thisfile.split(os.sep)[:-3]))
+
+if os.environ.get("READTHEDOCS") == "True":
+  # Do any RTD-specific setup here
+  pass
 
 # General information about the project.
 docname = project + u'doc'
@@ -26,8 +33,15 @@ extensions = [
     'sphinx.ext.todo',
     'sphinx.ext.coverage',
     'sphinx.ext.mathjax',
-    'sphinx.ext.viewcode'
+    'sphinx.ext.viewcode',
+    # autosectionlabel is pretty broken
+    # 'sphinx.ext.autosectionlabel',
+    # "readthedocs_ext.readthedocs",
 ]
+
+autosectionlabel_prefix_document = True
+autosectionlabel_maxdepth = 2
+
 mathjax_path = (
     "https://cdnjs.cloudflare.com/ajax/libs/mathjax/"
     "2.7.5/MathJax.js?config=TeX-MML-AM_CHTML")
@@ -113,6 +127,8 @@ texinfo_documents = [
 intersphinx_mapping = {'https://docs.python.org/': None}
 
 # Advanced markdown
+
+
 def setup(app):
   app.add_config_value('recommonmark_config', {
       'auto_code_block': True,

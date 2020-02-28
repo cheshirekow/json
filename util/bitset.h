@@ -2,6 +2,8 @@
 // Copyright 2018 Josh Bialkowski <josh.bialkowski@gmail.com
 
 #include <cstdint>
+#include <cstdlib>
+#include <type_traits>
 
 // Reference to one bit within a bitset
 template <typename T>

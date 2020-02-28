@@ -120,5 +120,10 @@
   "gulp.autoDetect": "off",
   "jake.autoDetect": "off",
   "grunt.autoDetect": "off",
-  "npm.autoDetect": "off"
+  "npm.autoDetect": "off",
+  "[typescript]": {
+    "editor.tabSize": 2,
+    "editor.insertSpaces": true,
+    "editor.detectIndentation": false,
+  }
 }
