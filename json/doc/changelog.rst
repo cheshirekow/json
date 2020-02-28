@@ -2,6 +2,18 @@
 Changelog
 =========
 
+v0.2.2
+======
+
+* Use SerializeOpts inside StreamDumper to pretty-print (ish)
+* convert json_gen to generate code for the new registry-based
+  streaming API and update stream_gen_test to use it
+* change stream_macros.h to generate code for the new registry-based
+  streaming API and update stream_test to use it.
+* add kCompactOpts to json.h/cc (for unpretty-printing)
+* add documentation for the new streaming API and some general docs
+* delete old streaming API
+
 v0.2.1
 ======
 
@@ -21,8 +33,6 @@ v0.2.1
 * Merge _tpl.h files into -> .h
 * Make json_gen use a jinja template
 * Replace remaining printf() with LOG() for parse errors
-
-Closes: 0f7c7c3, 12fc493, 5fa508d, 71ac52e, 92c0d89, cda90c0, dc9d5bb
 
 v0.2.0
 ======

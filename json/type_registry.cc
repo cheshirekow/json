@@ -1,6 +1,10 @@
 // Copyright 2018 Josh Bialkowski <josh.bialkowski@gmail.com>
 #include "json/type_registry.h"
+
 #include <cstdint>
+#include <string>
+
+#include "json/util.h"
 
 namespace json {
 namespace stream {
@@ -13,6 +17,15 @@ int primitive_helper(Dumper* dumper, const T& value) {
 
 void parse_stringpiece(const Token& token, re2::StringPiece* out) {
   LOG(WARNING) << "Attempt to parse into a StringPiece which is const";
+}
+
+void parse_string(const Token& token, std::string* out) {
+  // NOTE(josh): strip literal quotes from beginning/end of the string.
+  re2::StringPiece unquoted =
+      token.spelling.substr(1, token.spelling.size() - 2);
+  out->resize(unquoted.size());
+  size_t nchars = unescape(unquoted, &(*out)[0], &(*out)[0] + unquoted.size());
+  out->resize(nchars);
 }
 
 Registry::Registry() {
@@ -28,6 +41,7 @@ Registry::Registry() {
   register_scalar(ParseRealNumber<float>, primitive_helper<float>);
   register_scalar(ParseBoolean, primitive_helper<bool>);
   register_scalar(parse_stringpiece, primitive_helper<re2::StringPiece>);
+  register_scalar(parse_string, primitive_helper<std::string>);
 }
 
 Registry* global_registry() {

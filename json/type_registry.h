@@ -1,6 +1,7 @@
-// Copyright 2018 Josh Bialkowski <josh.bialkowski@gmail.com>
 #pragma once
+// Copyright 2018 Josh Bialkowski <josh.bialkowski@gmail.com>
 
+#include <cassert>
 #include <map>
 
 #include <fmt/format.h>
@@ -10,6 +11,7 @@
 #include "json/json.h"
 #include "json/parse.h"
 #include "json/util.h"
+#include "util/stack_trace.h"
 #include "util/type_string.h"
 
 namespace json {
@@ -166,7 +168,7 @@ class Registry {
 
     while (event_stream->GetNextEvent(&event, &error) == 0) {
       if (event.typeno == json::Event::OBJECT_END) {
-        return error.code;
+        return 0;
       }
 
       if (event.typeno != json::Event::OBJECT_KEY) {
@@ -252,6 +254,29 @@ class Registry {
 
   template <typename T, size_t N>
   int parse_value(LexerParser* event_stream, T (*out)[N]) const {
+    if (std::is_same<T, char>::value) {
+      // NOTE(josh): temporary hack to get around the fact that, evidently,
+      //
+      // template <size_t N>
+      // int parse_value(LexerParser* event_stream, char (*out)[N]) const;
+      //
+      // is not "more specific" than this template. When we include that
+      // function, this one is called anyway.
+      std::string temp;
+      int result = this->parse_scalar(event_stream, &temp);
+      if (result) {
+        return result;
+      }
+      // NOTE(josh): reinterpret_cast is a no-op on the only active code path
+      // through this branch.
+      char (*write)[N] = reinterpret_cast<char (*)[N]>(out);
+      size_t ncopy = temp.copy(*write, N);
+      if (ncopy == N) {
+        ncopy = N - 1;
+      }
+      (*write)[ncopy] = '\0';
+      return 0;
+    }
     return this->parse_array(event_stream, out);
   }
 
@@ -259,8 +284,8 @@ class Registry {
   int dump_list(Dumper* dumper, Iterator begin, Iterator end) const;
 
   template <class T, size_t N>
-  int dump_list(Dumper* dumper, T (&arr)[N]) const {
-    return dump_list<T>(dumper, &arr[0], &arr[N]);
+  int dump_list(Dumper* dumper, const T (&arr)[N]) const {
+    return dump_list(dumper, &arr[0], &arr[N]);
   }
 
   template <typename T>
@@ -274,6 +299,16 @@ class Registry {
 
   template <typename T>
   int dump_value(Dumper* dumper, const T& out) const;
+
+  template <class T, size_t N>
+  int dump_value(Dumper* dumper, const T (&arr)[N]) const {
+    return this->dump_list(dumper, arr);
+  }
+
+  template <size_t N>
+  int dump_value(Dumper* dumper, const char (&arr)[N]) const {
+    return this->dump_scalar(dumper, arr);
+  }
 
  private:
   std::map<void*, SerializeSpec> parsers_;
@@ -314,10 +349,11 @@ struct DumpEvent {
   enum TypeNo {
     OBJECT_BEGIN,
     OBJECT_KEY,
+    OBJECT_VALUE,
     OBJECT_END,
     LIST_BEGIN,
     LIST_END,
-    VALUE,
+    LIST_VALUE,
     INVALID,
   };
 
@@ -327,7 +363,8 @@ struct DumpEvent {
 
 class Dumper {
  public:
-  explicit Dumper(Registry* registry) : registry_{registry} {
+  explicit Dumper(Registry* registry, const SerializeOpts& opts)
+      : registry_{registry}, opts_(opts) {
     if (!registry) {
       registry_ = global_registry();
     }
@@ -341,7 +378,7 @@ class Dumper {
     int result = 0;
     this->dump_event(DumpEvent::OBJECT_KEY);
     result |= registry_->dump_scalar(this, key);
-    this->dump_event(DumpEvent::VALUE);
+    this->dump_event(DumpEvent::OBJECT_VALUE);
     result |= registry_->dump_value(this, value);
     return result;
   }
@@ -362,8 +399,9 @@ class Dumper {
   virtual void dump_primitive(const std::string& strval) = 0;
   virtual void dump_primitive(const char* strval) = 0;
 
- private:
+ protected:
   Registry* registry_;
+  SerializeOpts opts_;
 };
 
 enum GuardType {
@@ -406,14 +444,15 @@ int Registry::dump_list(Dumper* dumper, Iterator begin, Iterator end) const {
   DumpGuard _guard{dumper, GUARD_LIST};
 
   for (Iterator iter = begin; iter != end; iter++) {
-    dumper->dump_event(DumpEvent::VALUE);
-    if (this->dump_value(*iter)) {
+    dumper->dump_event(DumpEvent::LIST_VALUE);
+    if (this->dump_value(dumper, *iter)) {
       LOG(WARNING) << "Element dump failed for list with iterator type"
                    << type_string<Iterator>()
                    << "', dumping empty list. Parse will probably fail later!";
       return 1;
     }
   }
+  return 0;
 }
 
 template <typename T>
@@ -501,54 +540,81 @@ struct DumpStack {
 class StreamDumper : public Dumper {
  public:
   // NOLINTNEXTLINE
-  StreamDumper(std::ostream* ostream, Registry* registry = nullptr)
-      : Dumper(registry), ostream_{ostream} {}
+  StreamDumper(std::ostream* ostream, const SerializeOpts& opts = kDefaultOpts,
+               Registry* registry = nullptr)
+      : Dumper(registry, opts), ostream_{ostream} {}
 
   virtual ~StreamDumper() {}
 
   void dump_event(DumpEvent::TypeNo eventno) override {
     switch (eventno) {
       case DumpEvent::LIST_BEGIN:
-      case DumpEvent::OBJECT_BEGIN:
-      case DumpEvent::VALUE:
-        if (dump_stack_.size() && dump_stack_.back().type == DumpStack::FIELD) {
-          (*ostream_) << " : ";
-          dump_stack_.pop_back();
-        }
-        break;
-      default:
-        break;
-    }
-
-    switch (eventno) {
-      case DumpEvent::LIST_BEGIN:
         (*ostream_) << "[";
+        if (opts_.indent) {
+          (*ostream_) << "\n";
+        }
         dump_stack_.push_back({DumpStack::LIST, 0});
         break;
+
       case DumpEvent::LIST_END:
+        assert(dump_stack_.size());
+        assert(dump_stack_.back().type == DumpStack::LIST);
+        if (opts_.indent && dump_stack_.back().count) {
+          (*ostream_) << "\n";
+          for (size_t idx = 0; idx < (dump_stack_.size() - 1) * opts_.indent;
+               idx++) {
+            (*ostream_) << ' ';
+          }
+        }
         (*ostream_) << "]";
-        // assert dump_stack_.back().type_ == DumpStack::LIST
         dump_stack_.pop_back();
         break;
+
       case DumpEvent::OBJECT_BEGIN:
         (*ostream_) << "{";
+        if (opts_.indent) {
+          (*ostream_) << "\n";
+        }
         dump_stack_.push_back({DumpStack::OBJECT, 0});
         break;
+
       case DumpEvent::OBJECT_END:
+        assert(dump_stack_.size());
+        assert(dump_stack_.back().type == DumpStack::OBJECT);
+        if (opts_.indent && dump_stack_.back().count) {
+          (*ostream_) << "\n";
+          for (size_t idx = 0; idx < (dump_stack_.size() - 1) * opts_.indent;
+               idx++) {
+            (*ostream_) << ' ';
+          }
+        }
         (*ostream_) << "}";
-        // assert dump_stack_.back().type_ == DumpStack::OBJECT
         dump_stack_.pop_back();
         break;
+
+      case DumpEvent::LIST_VALUE:
       case DumpEvent::OBJECT_KEY:
-        // assert dump_sack.size()
-        // assert dump_stack_.back().type_ == DumpStack::OBJECT
-        if (dump_stack_.back().count > 0) {
-          (*ostream_) << ", ";
+        // This is the start of a field in an object or a value in a list,
+        // if it is not the first, then write out the "," separator
+        if (dump_stack_.size() && dump_stack_.back().count) {
+          (*ostream_) << opts_.separators[1];
+          if (opts_.indent) {
+            (*ostream_) << "\n";
+          }
         }
-        dump_stack_.push_back({DumpStack::FIELD, 0});
-        break;
-      case DumpEvent::VALUE:
+        for (size_t idx = 0; idx < dump_stack_.size() * opts_.indent; idx++) {
+          (*ostream_) << ' ';
+        }
+
+        // This is *not* the end of an aggregate, so whatever aggregate is at
+        // the top of the stack is getting a new element
         dump_stack_.back().count += 1;
+        break;
+
+      case DumpEvent::OBJECT_VALUE:
+        // This is the value for a field, following the field name, so we
+        // should write out the ":" separator.
+        (*ostream_) << opts_.separators[0];
         break;
       default:
         break;
@@ -556,7 +622,7 @@ class StreamDumper : public Dumper {
   }
 
   void dump_primitive(uint8_t value) override {
-    (*ostream_) << value;
+    (*ostream_) << static_cast<int32_t>(value);
   };
   void dump_primitive(uint16_t value) override {
     (*ostream_) << value;
@@ -568,7 +634,7 @@ class StreamDumper : public Dumper {
     (*ostream_) << value;
   };
   void dump_primitive(int8_t value) override {
-    (*ostream_) << value;
+    (*ostream_) << static_cast<int32_t>(value);
   };
   void dump_primitive(int16_t value) override {
     (*ostream_) << value;
@@ -623,13 +689,14 @@ int dump(Dumper* dumper, const T& value, Registry* registry = nullptr) {
 }
 
 template <typename T>
-std::string dump(const T& value, Registry* registry = nullptr) {
+std::string dump(const T& value, const json::SerializeOpts& opts = kDefaultOpts,
+                 Registry* registry = nullptr) {
   if (!registry) {
     registry = global_registry();
   }
   std::stringstream strstream;
-  StreamDumper dumper{&strstream, registry};
-  registry->dump_value(dumper, value);
+  StreamDumper dumper{&strstream, opts, registry};
+  registry->dump_value(&dumper, value);
   return strstream.str();
 }
 

@@ -94,7 +94,7 @@ std::string unescape(const re2::StringPiece& piece) {
   return strm.str();
 }
 
-void unescape(const re2::StringPiece& piece, char* begin, char* end) {
+size_t unescape(const re2::StringPiece& piece, char* begin, char* end) {
   char* out = begin;
   for (const char* ptr = piece.begin(); ptr != piece.end() && out != end;
        ++ptr) {
@@ -119,12 +119,7 @@ void unescape(const re2::StringPiece& piece, char* begin, char* end) {
       (*out++) = *ptr;
     }
   }
-
-  if (out != end) {
-    (*out) = '\0';
-  } else if (begin != end) {
-    *(end - 1) = '\0';
-  }
+  return static_cast<size_t>(out - begin);
 }
 
 }  // namespace json

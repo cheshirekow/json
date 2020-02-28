@@ -12,12 +12,17 @@ import argparse
 import io
 import logging
 import os
+import re
 import sys
 
 # NOTE(josh): jinja imports the native python `json` package. If we're not
 # careful the build might try to use this directory as a python packge (e.g.
 # bazel with legacy_create_init=True, the default).
 import jinja2
+
+
+def escapename(qualified_name):
+  return re.sub(r"\W", "_", qualified_name)
 
 
 class Context(object):
@@ -27,10 +32,10 @@ class Context(object):
 
   def __init__(self):
     self.header_includes = []
-    self.source_includes = [
-      "json/stream_tpl.h"
-    ]
+    self.source_includes = []
     self.specs = []
+    self.namespaces = []
+    self.include_global_registration = True
 
   def add_header_includes(self, includes):
     """
@@ -113,6 +118,7 @@ def main():
       ])
   )
   env.globals.update(__builtins__.__dict__)
+  env.globals.update({"escapename": escapename})
   header_template = env.get_template("json_gen.h.tpl")
   source_template = env.get_template("json_gen.cc.tpl")
 
@@ -133,7 +139,7 @@ def main():
 
     header_content = header_template.render(ctx=ctx)
     source_content = source_template.render(
-      ctx=ctx, headerpath=(basename + ".h"))
+        ctx=ctx, headerpath=(basename + ".h"))
 
     if args.debug:
       sys.stdout.write(headerfile_path)

@@ -1,4 +1,5 @@
-add_library(util STATIC linked.cc redblack.cc)
+add_library(util STATIC linked.cc redblack.cc stack_trace.cc)
+add_library(util-shared SHARED linked.cc redblack.cc stack_trace.cc)
 format_and_lint(util
                 binary_literal.h
                 bitset.h
@@ -13,6 +14,8 @@ format_and_lint(util
                 redblack.h
                 redblack_test.cc
                 set_operations.hpp
+                stack_trace.h
+                stack_trace.cc
                 timespec.h
                 type_string.h
                 type_string_test.cc)

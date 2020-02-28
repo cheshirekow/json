@@ -9,7 +9,7 @@
 #include <re2/stringpiece.h>
 
 #define JSON_VERSION \
-  { 0, 2, 1 }
+  { 0, 2, 2 }
 
 // Tools for parsing and emitting JSON formatted data
 namespace json {
@@ -310,6 +310,9 @@ const char* SafeGet(const char* (&map)[N], size_t idx) {
 }
 
 // Default serialization option
-extern SerializeOpts kDefaultOpts;
+extern const SerializeOpts kDefaultOpts;
+
+// Serialization options for a very compact JSON output
+extern const SerializeOpts kCompactOpts;
 
 }  // namespace json

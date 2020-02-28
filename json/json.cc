@@ -487,10 +487,14 @@ int Verify(const re2::StringPiece& source, Error* error) {
   }
 }
 
-SerializeOpts kDefaultOpts{
+const SerializeOpts kDefaultOpts{
     .indent = 2,
-    .separators = {":", ","},
+    .separators = {": ", ","},
 };
+
+const json::SerializeOpts kCompactOpts = {  //
+    .indent = 0,
+    .separators = {":", ","}};
 
 // -----------------------------------------------------------------------------
 //    BufPrinter
@@ -504,7 +508,7 @@ int BufPrinter::operator()(const char* fmt, va_list args) {
     writelen = end_ - write;
   }
 
-  return vsnprintf(write, writelen, fmt, args); // NOLINT
+  return vsnprintf(write, writelen, fmt, args);  // NOLINT
 }
 
 int BufPrinter::operator()(const char* fmt, ...) {

@@ -1,9 +1,6 @@
 # pylint: disable=undefined-variable
 
-add_header_includes(["json/test/stream_gen_test.h",
-                     "json/stream.h",
-                     "json/stream_std.h"])
-
+add_header_includes(["json/test/stream_gen_test.h"])
 add_source_includes([])
 
 decl_json({

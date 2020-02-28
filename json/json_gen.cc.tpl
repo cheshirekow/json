@@ -2,56 +2,63 @@
 
 #include "{{headerpath}}"
 
+{% if ctx.source_includes -%}
 {% for filename in sorted(ctx.source_includes) -%}
 #include "{{filename}}"
 {% endfor %}
+{% endif -%}
 
-namespace json {
-namespace stream {
+{%- if ctx.namespaces -%}
+{% for ns in ctx.namespaces -%}
+namespace {{ns}} {
+{% endfor %}
+{% endif -%}
 
-{% for fqname, fields in sorted(ctx.specs) %}
-
-  int ParseField(const re2::StringPiece& key, const Event& event,
-                 LexerParser* stream, {{fqname}}* out) {
-    uint64_t keyid = RuntimeHash(key);
-    switch (keyid) {
-      {% for field in fields %}
-      case Hash("{{field}}"):
-        ParseValue(event, stream, &out->{{field}});
-        break;
-      {% endfor %}
-      default:
-        SinkValue(event, stream);
-        return 1;
-    }
-    return 0;
-  }
-
-  void ParseValue(const Event& event, LexerParser* stream, {{fqname}}* out) {
-    ParseObject(event, stream, out);
-  }
-
-  void EmitValue(const {{fqname}}& value, const SerializeOpts& opts,
-                 size_t depth, BufPrinter* out) {
-    (*out)("{");
-    if (opts.indent) {
-      (*out)("\n");
-    }
+{%- for qname, fields in sorted(ctx.specs) -%}
+int parsefields_{{escapename(qname)}}(  //
+    const json::stream::Registry& registry, const re2::StringPiece& key,
+    json::LexerParser* stream, {{qname}}* out) {
+  uint64_t keyid = json::RuntimeHash(key);
+  switch (keyid) {
     {% for field in fields -%}
-    EmitField("{{field}}", value.{{field}}, opts, depth, out);
-    {%- if not loop.last %}
-    EmitFieldSep(opts, out);
-    {%- endif %}
+    case json::Hash("{{field}}"):
+      registry.parse_value(stream, &out->{{field}});
+      break;
     {% endfor %}
-    {%- if fields %}
-    if (opts.indent) {
-      (*out)("\n");
-    }
-    {%- endif %}
-    FmtIndent(out, opts.indent, depth);
-    (*out)("}");
+    default:
+      json::SinkValue(stream);
+      return 1;
   }
+  return 0;
+}
+
+int dumpfields_{{escapename(qname)}}(  //
+    const {{qname}}& value, json::stream::Dumper* dumper) {
+  int result = 0;
+  {% for field in fields -%}
+  result |= dumper->dump_field("{{field}}", value.{{field}});
+  {% endfor -%}
+  return result;
+}
+{%- if not loop.last %}
+
+{% endif -%}
+{%- endfor %}
+
+// Register the type specific parsers/dumpers
+int register_types(json::stream::Registry* registry) {
+{%- for qname, fields in sorted(ctx.specs) %}
+  registry->register_object(  //
+      parsefields_{{escapename(qname)}},  //
+      dumpfields_{{escapename(qname)}});
+{%- endfor %}
+return 0;
+}
+
+{%- if ctx.include_global_registration %}
+static const int __dummy0 = register_types(json::stream::global_registry());
+{%- endif %}
+{% for ns in ctx.namespaces[::-1] %}
+}  // namespace {{ns}}
 {% endfor %}
 
-} // namespace stream
-} // namespace json

@@ -5,7 +5,7 @@
 
 template <typename T>
 class BitSetTest : public ::testing::Test {};
-typedef ::testing::Types<uint8_t, uint16_t, uint32_t, uint64_t> BitSetTypes;
+typedef ::testing::Types<uint32_t, uint64_t> BitSetTypes;
 
 TYPED_TEST_CASE(BitSetTest, BitSetTypes);
 TYPED_TEST(BitSetTest, GetSetTest) {

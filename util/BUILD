@@ -12,11 +12,13 @@ cc_library(
           "null_out.h",
           "range.hpp",
           "redblack.h",
+          "stack_trace.h",
           "set_operations.hpp",
           "timespec.h",
           "type_string.h"],
     srcs=["linked.cc",
-          "redblack.cc"],
+          "redblack.cc",
+          "stack_trace.cc"],
 )
 
 cc_test(name="util-bitset_test",

@@ -4,17 +4,29 @@ json
 
 A C++ library for working with JavaScript Object Notation.
 
+The design of this library makes it especialy suitable for use in embedded
+applications. In particular, the design supports:
+
+1. Parse into static structures with no memory allocations
+2. Serialize into fixed output buffers with no memory allocations
+3. No dependency on the standard library
+
+.. warning::
+
+   While the design of the library enables these features, the current
+   implementation doesn't quite meet these goals. For the most part there's
+   a few standard library uses that need to be replaced with fixed-memory
+   data structures and some of the standard library support is written in the
+   same files as the core library. These will be segregated into their own
+   files soon.
+
 -------------
 Low-level API
 -------------
 
 There is a straight-forward, low level API that you may find suitable for
-working with JSON documents. It follows a typical lexer / parser pattern. You
-can manage the lex and parse steps separately with ``json::Scanner`` and
-``json::Parser``, or you can you use the thin combination
-``json::LexerParser``.
-
-To work with the parse stream from a text document:
+working with JSON documents. For example, a simple program that responds to
+all of the semantic elements in a JSON document:
 
 .. code-block:: c++
 
@@ -65,61 +77,19 @@ To work with the parse stream from a text document:
       }
     }
 
-To work with a token and event stream directly from a text document:
-
-.. code-block:: c++
-
-    int DoTokenStream(const std::string& content, std::ostream* log) {
-      json::Scanner scanner{};
-      json::Parser  parser{};
-      json::Error{};
-
-      int status = scanner.Init(&error);
-      if(status < 0){
-        (*log) << json::Error::ToString(error.code) << ": " << error.msg;
-        return -1;
-      }
-
-      scanner.Begin(content);
-
-      json::Token token{};
-      json::Event event{};
-      while(scanner.Pump(&token, &error) == 0){
-        int status = parser.HandleToken(token, &event, &error);
-        // error
-        if(status < 0){
-          (*log) << json::Error::ToString(error.code) << ": " << error.msg;
-          return -1;
-        } else if(status > 0){
-          // An actionable event has occured, do something with the event
-        } else {
-          // No actionable event, but you can do something with the token
-          // if you want. This means the token is either whitespace, colon,
-          // or comma.
-        }
-      }
-
-      if(error.code != json::Error::LEX_INPUT_FINISHED){
-        return -1;
-      } else {
-        return 0;
-      }
-    }
-
 ---------------
 High Level APIs
 ---------------
 
 There are a couple of experimental high level APIs that you might find
-useful. These should not be considered production ready and are likely to
-change int he future as I continue to experiment with different implementations.
+useful.
 
 The Stream API
 ==============
 
-The stream API allows you to construct JSON-serializable native structures. To
-use the API include `stream.h` and `stream_macros.h` in any header where you
-declare your structures, and use the `JSON_STREAM` macro to expose fields.
+The stream API allows you to construct JSON-serializable native structures.
+There are magic macros and a code-generator that can simplify the process of
+generating the bindings.
 
 For example:
 
@@ -127,7 +97,7 @@ For example:
 
     #include <fstream>
     #include <iostream>
-    #include "json/stream.h"
+    #include "json/json.h"
     #include "json/stream_macros.h"
 
 
@@ -137,23 +107,24 @@ For example:
         double b = 3.14;
         float e = 1.2;
         int f = 3;
-        JSON_STREAM(a, b, e, f);
       } foo;
 
       struct {
         int c = 2;
         float d = 3.2f;
-        JSON_STREAM(c, d);
       } bar;
 
       struct {
         int a = 1;
         float b = 2.0;
-        JSON_STREAM(a, b);
       } boz[2];
-
-      JSON_STREAM(foo, bar, boz);
     };
+
+    JSON_DEFN(MyStruct, foo, bar, boz);
+    JSON_DEFN2(decltype(MyStruct::foo), FOO, a, b, e, f);
+    JSON_DEFN2(decltype(MyStruct::bar), BAR, c, d);
+    JSON_DEFN2(decltype(MyStruct::boz), BOZ, a, b);
+    JSON_REGISTER_GLOBALLY(X, MyStruct, FOO, BAR, BOZ);
 
     int main(int argc, char** argv){
       // argv[1] is the name of a JSON file to read in
@@ -161,20 +132,48 @@ For example:
       content.reserve(1024 * 1024);
       content.assign((std::istreambuf_iterator<char>(argv[1])),
                       std::istreambuf_iterator<char>());
-
       MyStruct obj;
 
       // Parse the input file and assign fields of MyStruct
-      json::stream::Parse(content, &obj);
+      json::stream::parse(content, &obj);
 
-      // Serialize the resulting structure into a char buffer
-      content.resize(512, '\n');
-      json::stream::Emit(obj, {.indent=2, .separators={": ", ","}}, &content[0],
-                        &content[512]);
-
-      // and print to stdout
-      std::cout << content;
+      // Serialize the resulting structure into a string and write to
+      // stdout
+      std::cout << json::stream::dump(obj);
     }
+
+The Builder API
+===============
+
+The Builder API can generate `Variant` trees that serializable to json. For
+example:
+
+.. code:: c++
+
+    #include "json/builder.h"
+    using namespace json;  // NOLINT
+    using namespace json::insource;  // NOLINT
+
+    int main(int argc, char* argv) {
+
+      Variant tree =                   //
+        json::Build(O{"hello", 123, "world",
+                      O{"foo", O{
+                                   "far", 123,      //
+                                   "fuz", "hello",  //
+                                   "fur", 42.7e2,   //
+                                   "fox", true,     //
+                                   "fut", false,    //
+                                   "fit", nullptr   //
+                               }}});
+      std::string buf;
+      buf.resize(256);
+      size_t realsize = tree.serialize(&buf[0], &buf.back());
+      buf.resize(realsize);
+      std::cout << buf;
+    }
+
+For more information, see `builder.h`.
 
 ----------------
 The json program

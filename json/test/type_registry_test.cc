@@ -39,10 +39,10 @@ int parsefield_TestA(const stream::Registry& registry,
 
 int dumpfields_TestA(const TestA& value, stream::Dumper* dumper) {
   int result = 0;
-  dumper->dump_field("field_a", value.field_a);
-  dumper->dump_field("field_b", value.field_b);
-  dumper->dump_field("field_c", value.field_c);
-  dumper->dump_field("field_d", value.field_d);
+  result |= dumper->dump_field("field_a", value.field_a);
+  result |= dumper->dump_field("field_b", value.field_b);
+  result |= dumper->dump_field("field_c", value.field_c);
+  result |= dumper->dump_field("field_d", value.field_d);
   return result;
 }
 
@@ -79,11 +79,11 @@ TEST(TypeRegistryTest, TestDumpSimpleStruct) {
   EXPECT_EQ(0, json::stream::dump(&dumper, value));
 
   std::string expect =
-      "{"
-      "\"field_a\" : 1, "
-      "\"field_b\" : 2, "
-      "\"field_c\" : 3, "
-      "\"field_d\" : true"
+      "{\n"
+      "  \"field_a\": 1,\n"
+      "  \"field_b\": 2,\n"
+      "  \"field_c\": 3,\n"
+      "  \"field_d\": true\n"
       "}";
   EXPECT_EQ(expect, outstream.str());
 }

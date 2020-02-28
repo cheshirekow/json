@@ -1,5 +1,6 @@
 #pragma once
 // Copyright 2018 Josh Bialkowski <josh.bialkowski@gmail.com>
+#include "json/type_registry.h"
 
 // ----------------------------------------------------------------------------
 // Begin: Ugly Macro Implementation Details
@@ -12,6 +13,9 @@
 // See https://gcc.gnu.org/onlinedocs/gcc-2.95.3/cpp_1.html#SEC26
 #define JSON_PRIMITIVE_CAT(a, ...) a##__VA_ARGS__
 #define JSON_CAT(a, ...) JSON_PRIMITIVE_CAT(a, __VA_ARGS__)
+
+// Evaluates to the first argument
+#define JSON_TAKE_ONE(x, ...) x
 
 // Evaluates to the second argument
 #define JSON_TAKE_TWO_(x, n, ...) n
@@ -62,9 +66,9 @@
 
 // This is the actual meat of the macro system: simply a case statement to
 // dispatch the appropriate parser for the given field (by name)
-#define JSON_CASE_IF_NOT_PAREN_0(key)     \
-  case Hash(#key):                        \
-    ParseValue(event, stream, &out->key); \
+#define JSON_CASE_IF_NOT_PAREN_0(key)        \
+  case json::Hash(#key):                     \
+    registry.parse_value(stream, &out->key); \
     break;
 
 // This is the else-case for when the parameter is a placeholder
@@ -100,7 +104,7 @@
   JSON_CASE_IF_NOT_PAREN(_18)                                               \
   JSON_CASE_IF_NOT_PAREN(_19)
 
-// One layer of macro indirectino, presumably to glue together to halfs of
+// One layer of macro indirection, to glue together two halfs of
 // the macro argument list
 #define JSON_MAKE_CASES_(...) JSON_MAKE_CASES_N(__VA_ARGS__)
 
@@ -108,242 +112,300 @@
 #define JSON_MAKE_CASES(...) JSON_MAKE_CASES_(__VA_ARGS__, JSON_FILL())
 
 // -----------------------------------------------------------------------------
-// JSON_MAKE_EMITS()
+// JSON_MAKE_DUMPS()
 // -----------------------------------------------------------------------------
+// See JSON_MAKE_CASES() above for a description of the structure of this
+// macro system. The following are not commented.
 
-#define JSON_EMIT_IF_NOT_PAREN_0(key) \
-  EmitField(#key, value.key, opts, depth, out);
+#define JSON_DUMP_IF_NOT_PAREN_0(key) \
+  result |= dumper->dump_field(#key, value.key);
 
-#define JSON_EMIT_IF_NOT_PAREN_1(key)
-#define JSON_EMIT_IF_NOT_PAREN(x) \
-  JSON_CAT(JSON_EMIT_IF_NOT_PAREN_, JSON_IS_PAREN(x))(x)
+#define JSON_DUMP_IF_NOT_PAREN_1(key)
 
-#define JSON_EMIT_WSEP_IF_NOT_PAREN_0(key) \
-  EmitFieldSep(opts, out);                 \
-  EmitField(#key, value.key, opts, depth, out);
+#define JSON_DUMP_IF_NOT_PAREN(x) \
+  JSON_CAT(JSON_DUMP_IF_NOT_PAREN_, JSON_IS_PAREN(x))(x)
 
-#define JSON_EMIT_WSEP_IF_NOT_PAREN_1(key)
-#define JSON_EMIT_WSEP_IF_NOT_PAREN(x) \
-  JSON_CAT(JSON_EMIT_WSEP_IF_NOT_PAREN_, JSON_IS_PAREN(x))(x)
-
-#define JSON_MAKE_EMITS_N(_00, _01, _02, _03, _04, _05, _06, _07, _08, _09, \
+#define JSON_MAKE_DUMPS_N(_00, _01, _02, _03, _04, _05, _06, _07, _08, _09, \
                           _10, _11, _12, _13, _14, _15, _16, _17, _18, _19, \
                           ...)                                              \
-  JSON_EMIT_IF_NOT_PAREN(_00)                                               \
-  JSON_EMIT_WSEP_IF_NOT_PAREN(_01)                                          \
-  JSON_EMIT_WSEP_IF_NOT_PAREN(_02)                                          \
-  JSON_EMIT_WSEP_IF_NOT_PAREN(_03)                                          \
-  JSON_EMIT_WSEP_IF_NOT_PAREN(_04)                                          \
-  JSON_EMIT_WSEP_IF_NOT_PAREN(_05)                                          \
-  JSON_EMIT_WSEP_IF_NOT_PAREN(_06)                                          \
-  JSON_EMIT_WSEP_IF_NOT_PAREN(_07)                                          \
-  JSON_EMIT_WSEP_IF_NOT_PAREN(_08)                                          \
-  JSON_EMIT_WSEP_IF_NOT_PAREN(_09)                                          \
-  JSON_EMIT_WSEP_IF_NOT_PAREN(_10)                                          \
-  JSON_EMIT_WSEP_IF_NOT_PAREN(_11)                                          \
-  JSON_EMIT_WSEP_IF_NOT_PAREN(_12)                                          \
-  JSON_EMIT_WSEP_IF_NOT_PAREN(_13)                                          \
-  JSON_EMIT_WSEP_IF_NOT_PAREN(_14)                                          \
-  JSON_EMIT_WSEP_IF_NOT_PAREN(_15)                                          \
-  JSON_EMIT_WSEP_IF_NOT_PAREN(_16)                                          \
-  JSON_EMIT_WSEP_IF_NOT_PAREN(_17)                                          \
-  JSON_EMIT_WSEP_IF_NOT_PAREN(_18)                                          \
-  JSON_EMIT_WSEP_IF_NOT_PAREN(_19)                                          \
-  if (opts.indent) {                                                        \
-    (*out)("\n");                                                           \
-  }
+  JSON_DUMP_IF_NOT_PAREN(_00)                                               \
+  JSON_DUMP_IF_NOT_PAREN(_01)                                               \
+  JSON_DUMP_IF_NOT_PAREN(_02)                                               \
+  JSON_DUMP_IF_NOT_PAREN(_03)                                               \
+  JSON_DUMP_IF_NOT_PAREN(_04)                                               \
+  JSON_DUMP_IF_NOT_PAREN(_05)                                               \
+  JSON_DUMP_IF_NOT_PAREN(_06)                                               \
+  JSON_DUMP_IF_NOT_PAREN(_07)                                               \
+  JSON_DUMP_IF_NOT_PAREN(_08)                                               \
+  JSON_DUMP_IF_NOT_PAREN(_09)                                               \
+  JSON_DUMP_IF_NOT_PAREN(_10)                                               \
+  JSON_DUMP_IF_NOT_PAREN(_11)                                               \
+  JSON_DUMP_IF_NOT_PAREN(_12)                                               \
+  JSON_DUMP_IF_NOT_PAREN(_13)                                               \
+  JSON_DUMP_IF_NOT_PAREN(_14)                                               \
+  JSON_DUMP_IF_NOT_PAREN(_15)                                               \
+  JSON_DUMP_IF_NOT_PAREN(_16)                                               \
+  JSON_DUMP_IF_NOT_PAREN(_17)                                               \
+  JSON_DUMP_IF_NOT_PAREN(_18)                                               \
+  JSON_DUMP_IF_NOT_PAREN(_19)
 
-#define JSON_MAKE_EMITS_(...) JSON_MAKE_EMITS_N(__VA_ARGS__)
-#define JSON_MAKE_EMITS(...) JSON_MAKE_EMITS_(__VA_ARGS__, JSON_FILL())
+#define JSON_MAKE_DUMPS_(...) JSON_MAKE_DUMPS_N(__VA_ARGS__)
+#define JSON_MAKE_DUMPS(...) JSON_MAKE_DUMPS_(__VA_ARGS__, JSON_FILL())
 
 // -----------------------------------------------------------------------------
-// JSON_MAKE_WALKS()
+// JSON_MAKE_REGISTRATIONS()
 // -----------------------------------------------------------------------------
+// See JSON_MAKE_CASES() above for a description of the structure of this
+// macro system. The following are not commented.
 
-#define JSON_WALK_IF_NOT_PAREN_0(key)   \
-  event.typeno = WalkEvent::OBJECT_KEY; \
-  walker->ConsumeEvent(event);          \
-  walker->ConsumeValue(#key);           \
-  event.typeno = WalkEvent::VALUE;      \
-  walker->ConsumeEvent(event);          \
-  WalkValue(value.key, opts, walker);
+#define JSON_REGISTER_IF_NOT_PAREN_0(SUFFIX)                \
+  registry->register_object(JSON_CAT(parsefields_, SUFFIX), \
+                            JSON_CAT(dumpfields_, SUFFIX));
 
-#define JSON_WALK_IF_NOT_PAREN_1(key)
-#define JSON_WALK_IF_NOT_PAREN(x) \
-  JSON_CAT(JSON_WALK_IF_NOT_PAREN_, JSON_IS_PAREN(x))(x)
+#define JSON_REGISTER_IF_NOT_PAREN_1(key)
 
-#define JSON_MAKE_WALKS_N(_00, _01, _02, _03, _04, _05, _06, _07, _08, _09, \
-                          _10, _11, _12, _13, _14, _15, _16, _17, _18, _19, \
-                          ...)                                              \
-  JSON_WALK_IF_NOT_PAREN(_00)                                               \
-  JSON_WALK_IF_NOT_PAREN(_01)                                               \
-  JSON_WALK_IF_NOT_PAREN(_02)                                               \
-  JSON_WALK_IF_NOT_PAREN(_03)                                               \
-  JSON_WALK_IF_NOT_PAREN(_04)                                               \
-  JSON_WALK_IF_NOT_PAREN(_05)                                               \
-  JSON_WALK_IF_NOT_PAREN(_06)                                               \
-  JSON_WALK_IF_NOT_PAREN(_07)                                               \
-  JSON_WALK_IF_NOT_PAREN(_08)                                               \
-  JSON_WALK_IF_NOT_PAREN(_09)                                               \
-  JSON_WALK_IF_NOT_PAREN(_10)                                               \
-  JSON_WALK_IF_NOT_PAREN(_11)                                               \
-  JSON_WALK_IF_NOT_PAREN(_12)                                               \
-  JSON_WALK_IF_NOT_PAREN(_13)                                               \
-  JSON_WALK_IF_NOT_PAREN(_14)                                               \
-  JSON_WALK_IF_NOT_PAREN(_15)                                               \
-  JSON_WALK_IF_NOT_PAREN(_16)                                               \
-  JSON_WALK_IF_NOT_PAREN(_17)                                               \
-  JSON_WALK_IF_NOT_PAREN(_18)                                               \
-  JSON_WALK_IF_NOT_PAREN(_19)
+#define JSON_REGISTER_IF_NOT_PAREN(x) \
+  JSON_CAT(JSON_REGISTER_IF_NOT_PAREN_, JSON_IS_PAREN(x))(x)
 
-#define JSON_MAKE_WALKS_(...) JSON_MAKE_WALKS_N(__VA_ARGS__)
-#define JSON_MAKE_WALKS(...) JSON_MAKE_WALKS_(__VA_ARGS__, JSON_FILL())
-
-// -----------------------------------------------------------------------------
-// JSON_MAKE_WALKS_MUTABLE()
-// -----------------------------------------------------------------------------
-
-#define JSON_WALK_MUTABLE_IF_NOT_PAREN_0(key) \
-  event.typeno = WalkEvent::OBJECT_KEY;       \
-  walker->ConsumeEvent(event);                \
-  walker->ConsumeValue(#key);                 \
-  event.typeno = WalkEvent::VALUE;            \
-  walker->ConsumeEvent(event);                \
-  WalkValue(opts, &value->key, walker);
-
-#define JSON_WALK_MUTABLE_IF_NOT_PAREN_1(key)
-#define JSON_WALK_MUTABLE_IF_NOT_PAREN(x) \
-  JSON_CAT(JSON_WALK_MUTABLE_IF_NOT_PAREN_, JSON_IS_PAREN(x))(x)
-
-#define JSON_MAKE_WALKS_MUTABLE_N(_00, _01, _02, _03, _04, _05, _06, _07, _08, \
+#define JSON_MAKE_REGISTRATIONS_N(_00, _01, _02, _03, _04, _05, _06, _07, _08, \
                                   _09, _10, _11, _12, _13, _14, _15, _16, _17, \
                                   _18, _19, ...)                               \
-  JSON_WALK_MUTABLE_IF_NOT_PAREN(_00)                                          \
-  JSON_WALK_MUTABLE_IF_NOT_PAREN(_01)                                          \
-  JSON_WALK_MUTABLE_IF_NOT_PAREN(_02)                                          \
-  JSON_WALK_MUTABLE_IF_NOT_PAREN(_03)                                          \
-  JSON_WALK_MUTABLE_IF_NOT_PAREN(_04)                                          \
-  JSON_WALK_MUTABLE_IF_NOT_PAREN(_05)                                          \
-  JSON_WALK_MUTABLE_IF_NOT_PAREN(_06)                                          \
-  JSON_WALK_MUTABLE_IF_NOT_PAREN(_07)                                          \
-  JSON_WALK_MUTABLE_IF_NOT_PAREN(_08)                                          \
-  JSON_WALK_MUTABLE_IF_NOT_PAREN(_09)                                          \
-  JSON_WALK_MUTABLE_IF_NOT_PAREN(_10)                                          \
-  JSON_WALK_MUTABLE_IF_NOT_PAREN(_11)                                          \
-  JSON_WALK_MUTABLE_IF_NOT_PAREN(_12)                                          \
-  JSON_WALK_MUTABLE_IF_NOT_PAREN(_13)                                          \
-  JSON_WALK_MUTABLE_IF_NOT_PAREN(_14)                                          \
-  JSON_WALK_MUTABLE_IF_NOT_PAREN(_15)                                          \
-  JSON_WALK_MUTABLE_IF_NOT_PAREN(_16)                                          \
-  JSON_WALK_MUTABLE_IF_NOT_PAREN(_17)                                          \
-  JSON_WALK_MUTABLE_IF_NOT_PAREN(_18)                                          \
-  JSON_WALK_MUTABLE_IF_NOT_PAREN(_19)
+  JSON_REGISTER_IF_NOT_PAREN(_00)                                              \
+  JSON_REGISTER_IF_NOT_PAREN(_01)                                              \
+  JSON_REGISTER_IF_NOT_PAREN(_02)                                              \
+  JSON_REGISTER_IF_NOT_PAREN(_03)                                              \
+  JSON_REGISTER_IF_NOT_PAREN(_04)                                              \
+  JSON_REGISTER_IF_NOT_PAREN(_05)                                              \
+  JSON_REGISTER_IF_NOT_PAREN(_06)                                              \
+  JSON_REGISTER_IF_NOT_PAREN(_07)                                              \
+  JSON_REGISTER_IF_NOT_PAREN(_08)                                              \
+  JSON_REGISTER_IF_NOT_PAREN(_09)                                              \
+  JSON_REGISTER_IF_NOT_PAREN(_10)                                              \
+  JSON_REGISTER_IF_NOT_PAREN(_11)                                              \
+  JSON_REGISTER_IF_NOT_PAREN(_12)                                              \
+  JSON_REGISTER_IF_NOT_PAREN(_13)                                              \
+  JSON_REGISTER_IF_NOT_PAREN(_14)                                              \
+  JSON_REGISTER_IF_NOT_PAREN(_15)                                              \
+  JSON_REGISTER_IF_NOT_PAREN(_16)                                              \
+  JSON_REGISTER_IF_NOT_PAREN(_17)                                              \
+  JSON_REGISTER_IF_NOT_PAREN(_18)                                              \
+  JSON_REGISTER_IF_NOT_PAREN(_19)
 
-#define JSON_MAKE_WALKS_MUTABLE_(...) JSON_MAKE_WALKS_MUTABLE_N(__VA_ARGS__)
-#define JSON_MAKE_WALKS_MUTABLE(...) \
-  JSON_MAKE_WALKS_MUTABLE_(__VA_ARGS__, JSON_FILL())
+#define JSON_MAKE_REGISTRATIONS_(...) JSON_MAKE_REGISTRATIONS_N(__VA_ARGS__)
+#define JSON_MAKE_REGISTRATIONS(...) \
+  JSON_MAKE_REGISTRATIONS_(__VA_ARGS__, JSON_FILL())
 
 // ----------------------------------------------------------------------------
 // End: Ugly Macro Implementation Details
 // ----------------------------------------------------------------------------
 
-#define JSON_DECLPARSE(OutType)                                           \
-  namespace json {                                                        \
-  namespace stream {                                                      \
-  int ParseField(const re2::StringPiece& key, const Event& event,         \
-                 LexerParser* stream, OutType* out);                      \
-  void ParseValue(const Event& event, LexerParser* stream, OutType* out); \
-  } /* namespace stream */                                                \
-  } /* namespace json */
+#define JSON_DECLPARSE_(ValueType, SUFFIX)                                 \
+  int JSON_CAT(parsefields_, SUFFIX)(                                      \
+      const json::stream::Registry& registry, const re2::StringPiece& key, \
+      json::LexerParser* stream, ValueType* out);
 
-#define JSON_DEFNPARSE(OutType, ...)                                       \
-  namespace json {                                                         \
-  namespace stream {                                                       \
-  int ParseField(const re2::StringPiece& key, const Event& event,          \
-                 LexerParser* stream, OutType* out) {                      \
-    uint64_t keyid = RuntimeHash(key);                                     \
+// JSON_DECLPARSE(<outtype>, [suffix])
+//  where:
+//  * <outtype> is the type description of the output structure, usually the
+//    name of a class or struct, but could also be a decltype(...)
+//  * <suffix> is an optional suffix to use in the naming of the generated
+//    functions. If not supplied, it defaults to <outtype>, but you must be
+//    provide the optional argument if <outtype> contains any special
+//    characters (like "::" or "()").
+//
+// Generates a function declaration
+//   int parsefields_SUFFIX(
+//    const Registry& registry, const re2::StringPiece& key,
+//    LexerParser* stream, ValueType* out);
+//
+// which implements the required client API for registration with the
+// serializable-type registry.
+#define JSON_DECLPARSE(...)                   \
+  JSON_DECLPARSE_(JSON_TAKE_ONE(__VA_ARGS__), \
+                  JSON_TAKE_TWO(__VA_ARGS__, __VA_ARGS__))
+
+// JSON_DEFNPARSE(<outtype>, <suffix>, field0, [field1, [field2, ...]])
+//  where:
+//  * <outtype> is the type description of the output structure, usually the
+//    name of a class or struct, but could also be a decltype(...)
+//  * <namesuffix> is a suffix to use in the naming of the generated
+//    functions.
+//
+// Generates a function definition
+//   int parsefields_SUFFIX(
+//    const Registry& registry, const re2::StringPiece& key,
+//    LexerParser* stream, ValueType* out);
+// which implements the required client API for registration with the
+// serializable-type registry.
+//
+// Note that SUFFIX must match between JSON_DECLPARSE and JSON_DEFNPARSE
+// for the associated pair.
+#define JSON_DEFNPARSE(ValueType, SUFFIX, ...)                             \
+  int JSON_CAT(parsefields_, SUFFIX)(                                      \
+      const json::stream::Registry& registry, const re2::StringPiece& key, \
+      json::LexerParser* stream, ValueType* out) {                         \
+    uint64_t keyid = json::RuntimeHash(key);                               \
     switch (keyid) {                                                       \
       JSON_MAKE_CASES(__VA_ARGS__)                                         \
       default:                                                             \
-        SinkValue(event, stream);                                          \
+        json::SinkValue(stream);                                           \
         return 1;                                                          \
     }                                                                      \
     return 0;                                                              \
-  }                                                                        \
-                                                                           \
-  void ParseValue(const Event& event, LexerParser* stream, OutType* out) { \
-    ParseObject(event, stream, out);                                       \
-  }                                                                        \
-  } /* namespace stream */                                                 \
-  } /* namespace json */
+  }
 
-#define JSON_DECLEMIT(OutType)                                    \
-  namespace json {                                                \
-  namespace stream {                                              \
-  void EmitValue(const OutType& value, const SerializeOpts& opts, \
-                 size_t depth, BufPrinter* out);                  \
-  } /* namespace stream */                                        \
-  } /* namespace json */
+#define JSON_DECLDUMP_(ValueType, SUFFIX)                   \
+  int JSON_CAT(dumpfields_, SUFFIX)(const ValueType& value, \
+                                    json::stream::Dumper* dumper);
 
-#define JSON_DEFNEMIT(OutType, ...)                               \
-  namespace json {                                                \
-  namespace stream {                                              \
-  void EmitValue(const OutType& value, const SerializeOpts& opts, \
-                 size_t depth, BufPrinter* out) {                 \
-    (*out)("{");                                                  \
-    if (opts.indent) {                                            \
-      (*out)("\n");                                               \
-    }                                                             \
-    JSON_MAKE_EMITS(__VA_ARGS__);                                 \
-    FmtIndent(out, opts.indent, depth);                           \
-    (*out)("}");                                                  \
-  }                                                               \
-  } /* namespace stream */                                        \
-  } /* namespace json */
+// JSON_DECLDUMP(<outtype>, [suffix])
+//  where:
+//  * <outtype> is the type description of the output structure, usually the
+//    name of a class or struct, but could also be a decltype(...)
+//  * <suffix> is an optional suffix to use in the naming of the generated
+//    functions. If not supplied, it defaults to <outtype>, but you must be
+//    provide the optional argument if <outtype> contains any special
+//    characters (like "::" or "()").
+//
+// Generates a function declaration
+//   int dumpfields_SUFFIX(
+//    const ValueType& value, Dumper* dumper);
+//
+// which implements the required client API for registration with the
+// serializable-type registry.
+#define JSON_DECLDUMP(...)                   \
+  JSON_DECLDUMP_(JSON_TAKE_ONE(__VA_ARGS__), \
+                 JSON_TAKE_TWO(__VA_ARGS__, __VA_ARGS__))
 
-#define JSON_DECLWALK(OutType)                                           \
-  namespace json {                                                       \
-  namespace stream {                                                     \
-  template <class T>                                                     \
-  void WalkValue(const OutType& value, const WalkOpts& opts, T* walker); \
-  template <class T>                                                     \
-  void WalkValue(const WalkOpts& opts, OutType* value, T* walker);       \
-  } /* namespace stream */                                               \
-  } /* namespace json */
+// JSON_DEFNDUMP(<outtype>, <suffix>, field0, [field1, [field2, ...]])
+//  where:
+//  * <outtype> is the type description of the output structure, usually the
+//    name of a class or struct, but could also be a decltype(...)
+//  * <suffix> is an optional suffix to use in the naming of the generated
+//    functions. If not supplied, it defaults to <outtype>, but you must be
+//    provide the optional argument if <outtype> contains any special
+//    characters (like "::" or "()").
+//
+// Generates a function definition
+//   int dumpfields_SUFFIX(
+//    const ValueType& value, Dumper* dumper);
+//
+// which implements the required client API for registration with the
+// serializable-type registry.
+//
+// Note that SUFFIX must match between JSON_DECLDUMP and JSON_DEFNDUMP
+// for the associated pair.
+#define JSON_DEFNDUMP(ValueType, SUFFIX, ...)                       \
+  int JSON_CAT(dumpfields_, SUFFIX)(const ValueType& value,         \
+                                    json::stream::Dumper* dumper) { \
+    int result = 0;                                                 \
+    JSON_MAKE_DUMPS(__VA_ARGS__);                                   \
+    return result;                                                  \
+  }
 
-#define JSON_DEFNWALK(OutType, ...)                                       \
-  namespace json {                                                        \
-  namespace stream {                                                      \
-                                                                          \
-  template <class T>                                                      \
-  void WalkValue(const OutType& value, const WalkOpts& opts, T* walker) { \
-    WalkEvent event;                                                      \
-    event.typeno = WalkEvent::LIST_BEGIN;                                 \
-    walker->ConsumeEvent(event);                                          \
-    JSON_MAKE_WALKS(__VA_ARGS__);                                         \
-    event.typeno = WalkEvent::LIST_END;                                   \
-    walker->ConsumeEvent(event);                                          \
-  }                                                                       \
-                                                                          \
-  template <class T>                                                      \
-  void WalkValue(const WalkOpts& opts, OutType* value, T* walker) {       \
-    WalkEvent event;                                                      \
-    event.typeno = WalkEvent::LIST_BEGIN;                                 \
-    walker->ConsumeEvent(event);                                          \
-    JSON_MAKE_WALKS_MUTABLE(__VA_ARGS__);                                 \
-    event.typeno = WalkEvent::LIST_END;                                   \
-    walker->ConsumeEvent(event);                                          \
-  }                                                                       \
-                                                                          \
-  } /* namespace stream */                                                \
-  } /* namespace json */
+#define JSON_DECL_(OutType, SUFFIX) \
+  JSON_DECLPARSE(OutType, SUFFIX)   \
+  JSON_DECLDUMP(OutType, SUFFIX)
 
-#define JSON_DECL(OutType) \
-  JSON_DECLPARSE(OutType)  \
-  JSON_DECLEMIT(OutType)   \
-  JSON_DECLWALK(OutType)
+// JSON_DECL(<outtype>, [suffix])
+//  where:
+//  * <outtype> is the type description of the output structure, usually the
+//    name of a class or struct, but could also be a decltype(...)
+//  * <suffix> is an optional suffix to use in the naming of the generated
+//    functions. If not supplied, it defaults to <outtype>, but you must be
+//    provide the optional argument if <outtype> contains any special
+//    characters (like "::" or "()").
+//
+// Generates a pair of function declarations
+//   int parsefields_SUFFIX(
+//    const Registry& registry, const re2::StringPiece& key,
+//    LexerParser* stream, ValueType* out);
+//   int dumpfields_SUFFIX(
+//    const ValueType& value, Dumper* dumper);
+//
+// which implement the required client API for registration with the
+// serializable-type registry.
+#define JSON_DECL(...)                   \
+  JSON_DECL_(JSON_TAKE_ONE(__VA_ARGS__), \
+             JSON_TAKE_TWO(__VA_ARGS__, __VA_ARGS__))
 
-#define JSON_DEFN(OutType, ...)        \
-  JSON_DEFNPARSE(OutType, __VA_ARGS__) \
-  JSON_DEFNEMIT(OutType, __VA_ARGS__)  \
-  JSON_DEFNWALK(OutType, __VA_ARGS__)
+// JSON_DEFN(<outtype>)
+//  where:
+//  * <outtype> is the type description of the output structure, usually the
+//    name of a class or struct, but could also be a decltype(...)
+//
+// Generates a pair of function definitions
+//   int parsefields_<outtype>(
+//    const Registry& registry, const re2::StringPiece& key,
+//    LexerParser* stream, ValueType* out);
+//   int dumpfields_<outtype>(
+//    const ValueType& value, Dumper* dumper);
+//
+// which implement the required client API for registration with the
+// serializable-type registry.
+//
+// Note that this macro uses the name of the output type as the suffix for
+// the generated function names. If the output type is not composed of a single
+// preprocessor token then you'll need to use the macro that takes two required
+// parameters JSON_DEFN2.
+#define JSON_DEFN(OutType, ...)                 \
+  JSON_DEFNPARSE(OutType, OutType, __VA_ARGS__) \
+  JSON_DEFNDUMP(OutType, OutType, __VA_ARGS__)
+
+// JSON_DEFN(<outtype>, <suffix>)
+//  where:
+//  * <outtype> is the type description of the output structure, usually the
+//    name of a class or struct, but could also be a decltype(...)
+//  * <suffix> is the suffix to use in the naming of the generated
+//    functions.
+//
+// Generates a pair of function definitions
+//   int parsefields_<outtype>(
+//    const Registry& registry, const re2::StringPiece& key,
+//    LexerParser* stream, ValueType* out);
+//   int dumpfields_<outtype>(
+//    const ValueType& value, Dumper* dumper);
+//
+// which implement the required client API for registration with the
+// serializable-type registry.
+//
+// Note that this macro requires you to specify the suffix for the generated
+// function names. If <outtype> is a single preprocessor token you can use that
+// as the suffix for the generated function names in which case you can use
+// JSON_DEFN isntead and avoid specifying the argument twice.
+#define JSON_DEFN2(OutType, SUFFIX, ...)       \
+  JSON_DEFNPARSE(OutType, SUFFIX, __VA_ARGS__) \
+  JSON_DEFNDUMP(OutType, SUFFIX, __VA_ARGS__)
+
+// JSON_DEFN_REGISTRATION_FN(<suffix>, <suffix0>, [<suffix1>, [<suffix2>, ...]])
+//
+// Generate a function definition for:
+//  int register_types_SUFFIX(Registry* registry);
+//
+// which registers several JSON-serializable objects with `registry`. The
+// additional parameters <suffix0>...<suffixn> are the suffixes used when
+// defining the parse/dump functions. i.e. they are the suffixes used in
+// JSON_DEFN2.
+#define JSON_DEFN_REGISTRATION_FN(SUFFIX, ...)                               \
+  int JSON_CAT(register_types_, SUFFIX)(json::stream::Registry * registry) { \
+    JSON_MAKE_REGISTRATIONS(__VA_ARGS__);                                    \
+    return 0;                                                                \
+  }
+
+// JSON_REGISTER_GLOBALLY(<suffix>, <suffix0>, [<suffix1>, [<suffix2>, ...]])
+//
+// Generate a function definition for:
+//  int register_types_SUFFIX(Registry* registry);
+//
+// which registers several JSON-serializable objects with `registry`. The
+// additional parameters <suffix0>...<suffixn> are the suffixes used when
+// defining the parse/dump functions. i.e. they are the suffixes used in
+// JSON_DEFN2.
+//
+// And also define a dummy global which is assigned the output of that
+// function. As a result, each of the JSON-serializable types will be
+// registered globally during program static initialization.
+#define JSON_REGISTER_GLOBALLY(SUFFIX, ...)      \
+  JSON_DEFN_REGISTRATION_FN(SUFFIX, __VA_ARGS__) \
+  static int JSON_CAT(kDummy_, SUFFIX) =         \
+      JSON_CAT(register_types_, SUFFIX)(json::stream::global_registry());

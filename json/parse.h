@@ -46,71 +46,6 @@ void SinkList(LexerParser* stream);
 
 }  // namespace json
 
-namespace json {
-namespace stream {
-
-// -----------------------------------------------------------------------------
-//    High level API
-// -----------------------------------------------------------------------------
-
-// Entry point template, pops the first event and then calls the appropriate
-// Parse() overload.
-template <typename T>
-void Parse(json::LexerParser* stream, T* out);
-
-// Convenience entry point. Parse the input string into the JSON-stream
-// serializable object
-template <typename T>
-void Parse(const re2::StringPiece& str, T* obj);
-
-// -----------------------------------------------------------------------------
-//    Parse Helpers
-// -----------------------------------------------------------------------------
-
-// Parse an homogenous array of elements.
-template <class T, size_t N>
-void ParseArray(LexerParser* stream, T (*arr)[N]);
-
-// Helper template for implementing object parsers. Implements all of the common
-// functionality. Requires the existence of an overload in the form
-//
-//    int ParseField(const re2::StringPiece& key, const Event& event,
-//                   LexerParser* stream, T* out)
-//
-// which it will call for each field key discovered in the object
-template <typename T>
-void ParseObject(const Event& entry_event, json::LexerParser* stream, T* out);
-
-// -----------------------------------------------------------------------------
-//    Value Parser Overloads
-// -----------------------------------------------------------------------------
-// These are parse functions for supported types
-// NOTE(josh): In general a parse function accepts only one class of input
-// (i.e. scalar, object, or list) and one token type (string literal, numeric
-// literal). If another type is encountered, a warning will be printed and
-// the value will be sink'ed
-
-void ParseValue(const Event& event, LexerParser* stream, int8_t* value);
-void ParseValue(const Event& event, LexerParser* stream, int16_t* value);
-void ParseValue(const Event& event, LexerParser* stream, int32_t* value);
-void ParseValue(const Event& event, LexerParser* stream, int64_t* value);
-void ParseValue(const Event& event, LexerParser* stream, uint8_t* value);
-void ParseValue(const Event& event, LexerParser* stream, uint16_t* value);
-void ParseValue(const Event& event, LexerParser* stream, uint32_t* value);
-void ParseValue(const Event& event, LexerParser* stream, uint64_t* value);
-void ParseValue(const Event& event, LexerParser* stream, double* value);
-void ParseValue(const Event& event, LexerParser* stream, float* value);
-void ParseValue(const Event& event, LexerParser* stream, bool* value);
-
-template <size_t N>
-void ParseValue(const Event& event, LexerParser* stream, char (*str)[N]);
-
-template <typename T, size_t N>
-void ParseValue(const Event& event, LexerParser* stream, T (*arr)[N]);
-
-}  // namespace stream
-}  // namespace json
-
 //
 //
 //
@@ -172,31 +107,5 @@ void ParseString(const Token& token, char (*buf)[N]) {
       token.spelling.substr(1, token.spelling.size() - 2);
   unescape(unquoted, *buf, (*buf) + N);
 }
-}  // namespace json
 
-namespace json {
-namespace stream {
-
-// -----------------------------------------------------------------------------
-//    Parse Overloads
-// -----------------------------------------------------------------------------
-
-template <size_t N>
-void ParseValue(const Event& event, LexerParser* stream, char (*str)[N]) {
-  ParseString(event.token, str);
-}
-
-template <typename T, size_t N>
-void ParseValue(const Event& event, LexerParser* stream, T (*arr)[N]) {
-  assert(event.typeno == Event::LIST_BEGIN);
-  ParseArray(stream, arr);
-}
-
-// template <typename T>
-// void Parse(const Event& event, LexerParser* stream, T* obj) {
-//   assert(event.typeno == Event::OBJECT_BEGIN);
-//   ParseObject(stream, obj);
-// }
-
-}  // namespace stream
 }  // namespace json

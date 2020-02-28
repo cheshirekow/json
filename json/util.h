@@ -86,9 +86,10 @@ void unescape(const re2::StringPiece& piece, std::ostream* out);
 /// Unescape any JSON encoded control codes, return the original string
 std::string unescape(const re2::StringPiece& piece);
 
-/// Uneescape any JSON encoded control codes, reconstruct the original string
-/// in the character buffer pointed to by (begin,end)
-void unescape(const re2::StringPiece& piece, char* begin, char* end);
+/// Unescape any JSON encoded control codes, reconstruct the original string
+/// in the character buffer pointed to by (begin,end). Return the number of
+/// characters in the output (not including the null terminator).
+size_t unescape(const re2::StringPiece& piece, char* begin, char* end);
 
 /// Unescape any JSON encoded control codes, reconstruct in `buf` the original
 /// string

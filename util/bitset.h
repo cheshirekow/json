@@ -24,7 +24,7 @@ struct BitRef {
 };
 
 // Like std::bitset but returns assignable references
-template <uint16_t N, typename T = uint8_t>
+template <uint16_t N, typename T = uint32_t>
 struct BitSet {
   enum {
     STORE_ELEMS_ = ((N + 8 * sizeof(T) - 1) / (8 * sizeof(T))),
@@ -35,13 +35,16 @@ struct BitSet {
     LAST_ELEM_MASK_ = (~T(0) >> EXTRA_BITS_)
   };
 
-  T data[STORE_ELEMS_];
-
-  bool StaticCheck() {
+  BitSet() {
     static_assert(N > 0, "BitSet<0> is not supported");
     static_assert(std::is_unsigned<T>::value,
                   "BitSet block type must be unsigned");
+    static_assert(sizeof(T) > 3,
+                  "BitSet block type must be 32 or 64 bit integers due to "
+                  "integer promotion during bitwise operations");
   }
+
+  T data[STORE_ELEMS_];
 
   void Clear() {
     for (size_t idx = 0; idx < STORE_ELEMS_; idx++) {

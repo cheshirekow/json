@@ -10,10 +10,7 @@
 
 #include "json/test/stream_gen_test.h"
 #include "json/test/test_types.h"
-
-#include "json/stream.h"
-#include "json/stream_std.h"
-#include "json/stream_tpl.h"
+#include "json/type_registry.h"
 
 TEST(StreamTest, BasicTest) {
   const char test_str[] =
@@ -21,7 +18,7 @@ TEST(StreamTest, BasicTest) {
       " \"boz\": [{\"a\": 2, \"b\": 3.0}, {\"b\": 1.0}]}";
   TestA obj;
 
-  json::stream::Parse(test_str, &obj);
+  ASSERT_EQ(0, json::stream::parse(test_str, &obj));
   EXPECT_EQ(2, obj.foo.a);
   EXPECT_EQ(3.14, obj.foo.b);
   EXPECT_EQ(42.0, obj.foo.e);
@@ -33,57 +30,54 @@ TEST(StreamTest, BasicTest) {
   EXPECT_EQ(1, obj.boz[1].a);
   EXPECT_EQ(1.0f, obj.boz[1].b);
 
-  std::string buf = json::stream::Emit(
-      obj, json::SerializeOpts{.indent = 0, .separators = {":", ","}});
-
+  std::string buf = json::stream::dump(obj, json::kCompactOpts);
   const char expect_str[] =
-      "{\"foo\":{\"a\":2,\"b\":3.140000,\"e\":42.000000,\"f\":3},\"bar\":{"
-      "\"c\":2,\"d\":6.100000},\"boz\":[{\"a\":2,\"b\":3.000000},{\"a\":1,"
-      "\"b\":1.000000}]}";
+      "{\"foo\":{\"a\":2,\"b\":3.14,\"e\":42,\"f\":3},"
+      "\"bar\":{"
+      "\"c\":2,\"d\":6.1},"
+      "\"boz\":[{\"a\":2,\"b\":3},{\"a\":1,\"b\":1}]}";
   EXPECT_EQ(expect_str, std::string(&buf[0]));
 
-  std::string buf2 = json::stream::Emit(
-      obj, json::SerializeOpts{.indent = 2, .separators = {": ", ","}});
+  std::string buf2 = json::stream::dump(obj, json::kDefaultOpts);
   const char expect_str2[] =
       "{\n"
       "  \"foo\": {\n"
       "    \"a\": 2,\n"
-      "    \"b\": 3.140000,\n"
-      "    \"e\": 42.000000,\n"
+      "    \"b\": 3.14,\n"
+      "    \"e\": 42,\n"
       "    \"f\": 3\n"
       "  },\n"
       "  \"bar\": {\n"
       "    \"c\": 2,\n"
-      "    \"d\": 6.100000\n"
+      "    \"d\": 6.1\n"
       "  },\n"
       "  \"boz\": [\n"
       "    {\n"
       "      \"a\": 2,\n"
-      "      \"b\": 3.000000\n"
+      "      \"b\": 3\n"
       "    },\n"
       "    {\n"
       "      \"a\": 1,\n"
-      "      \"b\": 1.000000\n"
+      "      \"b\": 1\n"
       "    }\n"
-      "]\n"
+      "  ]\n"
       "}";
   EXPECT_EQ(expect_str2, buf2);
 }
 
 TEST(StreamTest, SerializeTest) {
   TestB obj;
-  std::string buf = json::stream::Emit(
-      obj, json::SerializeOpts{.indent = 0, .separators = {":", ","}});
+  std::string buf = json::stream::dump(obj, json::kCompactOpts);
 
   const char expect_str[] =
-      "{\"a\":1,\"b\":2,\"c\":3,\"d\":4,\"e\":5,\"f\":6,\"g\":8,\"h\":9.000000,"
-      "\"i\":10.000000,\"j\":true,\"k\":[1,2,3,4],\"l\":\"hello\",\"xbar\":{"
+      "{\"a\":1,\"b\":2,\"c\":3,\"d\":4,\"e\":5,\"f\":6,\"g\":8,\"h\":9,"
+      "\"i\":10,\"j\":true,\"k\":[1,2,3,4],\"l\":\"hello\",\"xbar\":{"
       "\"a\":1,\"b\":2},\"xbaz\":[{\"a\":1,\"b\":2},{\"a\":1,\"b\":2},{\"a\":1,"
       "\"b\":2}]}";
   EXPECT_EQ(expect_str, buf);
 
-  std::string buf2 = json::stream::Emit(
-      obj, json::SerializeOpts{.indent = 2, .separators = {": ", ","}});
+  std::string buf2 = json::stream::dump(obj, json::kDefaultOpts);
+  return;
   const char expect_str2[] =
       "{\n"
       "  \"a\": 1,\n"
@@ -166,7 +160,7 @@ TEST(StreamTest, ParseTest) {
       "}";
 
   TestB obj;
-  json::stream::Parse(source_str, &obj);
+  json::stream::parse(source_str, &obj);
   EXPECT_EQ(2, obj.a);
   EXPECT_EQ(3, obj.b);
   EXPECT_EQ(4, obj.c);
@@ -181,12 +175,14 @@ TEST(StreamTest, ParseTest) {
   EXPECT_EQ(std::string("world"), std::string(obj.l));
 }
 
-class TestWalker {
+class TestDumper : public json::stream::Dumper {
  public:
-  void ConsumeEvent(const json::WalkEvent& event) {
-    switch (event.typeno) {
-      case json::WalkEvent::LIST_END:
-      case json::WalkEvent::OBJECT_END:
+  TestDumper() : json::stream::Dumper(nullptr, json::kDefaultOpts) {}
+
+  void dump_event(json::stream::DumpEvent::TypeNo eventno) override {
+    switch (eventno) {
+      case json::stream::DumpEvent::LIST_END:
+      case json::stream::DumpEvent::OBJECT_END:
         if (key_path_.size()) {
           key_path_.pop_back();
         }
@@ -194,27 +190,46 @@ class TestWalker {
       default:
         break;
     }
-    prev_event_ = event.typeno;
+    prev_event_ = eventno;
   }
 
-  void ConsumeValue(float val) {
-    value_map_[GetActiveKey()] = val;
+  void dump_primitive(uint8_t value) override {}
+  void dump_primitive(uint16_t value) override {}
+  void dump_primitive(uint32_t value) override {
+    value_map_[GetActiveKey()] = value;
     key_path_.pop_back();
   }
-
-  void ConsumeValue(int32_t val) {
-    value_map_[GetActiveKey()] = val;
+  void dump_primitive(uint64_t value) override {}
+  void dump_primitive(int8_t value) override {}
+  void dump_primitive(int16_t value) override {}
+  void dump_primitive(int32_t value) override {
+    value_map_[GetActiveKey()] = value;
     key_path_.pop_back();
   }
-
-  void ConsumeValue(uint32_t val) {
-    value_map_[GetActiveKey()] = val;
+  void dump_primitive(int64_t value) override {}
+  void dump_primtiive(float value) override {
+    value_map_[GetActiveKey()] = value;
     key_path_.pop_back();
   }
-
-  void ConsumeValue(const std::string& key) {
-    if (prev_event_ == json::WalkEvent::OBJECT_KEY) {
-      key_path_.push_back(key);
+  void dump_primitive(double value) override {
+    value_map_[GetActiveKey()] = value;
+    key_path_.pop_back();
+  }
+  void dump_primitive(bool value) override {}
+  void dump_primitive(std::nullptr_t nullval) override {}
+  void dump_primitive(re2::StringPiece strval) override {
+    if (prev_event_ == json::stream::DumpEvent::OBJECT_KEY) {
+      key_path_.push_back(strval.as_string());
+    }
+  }
+  void dump_primitive(const std::string& strval) override {
+    if (prev_event_ == json::stream::DumpEvent::OBJECT_KEY) {
+      key_path_.push_back(strval);
+    }
+  }
+  void dump_primitive(const char* strval) override {
+    if (prev_event_ == json::stream::DumpEvent::OBJECT_KEY) {
+      key_path_.push_back(strval);
     }
   }
 
@@ -235,14 +250,13 @@ class TestWalker {
   }
 
   std::vector<std::string> key_path_;
-  json::WalkEvent::TypeNo prev_event_;
+  json::stream::DumpEvent::TypeNo prev_event_;
 };
 
-TEST(StreamTest, WalkTest) {
+TEST(StreamTest, CustomDumperTest) {
   TestC test_obj{};
-  TestWalker walker;
-  json::stream::Walk(test_obj, {}, &walker);
-
+  TestDumper walker;
+  ASSERT_EQ(0, json::stream::dump(&walker, test_obj));
   ASSERT_EQ(5, walker.value_map_.size());
   ASSERT_FALSE(walker.value_map_.find("a") == walker.value_map_.end());
   ASSERT_EQ(1, walker.value_map_["a"]);
