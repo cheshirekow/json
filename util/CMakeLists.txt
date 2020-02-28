@@ -18,6 +18,7 @@ format_and_lint(
   linked.hpp
   linked_test.cc
   null_out.h
+  nullstream.h
   range.hpp
   redblack.cc
   redblack.h
@@ -31,7 +32,8 @@ format_and_lint(
   svg_artist.h
   timespec.h
   type_string.h
-  type_string_test.cc)
+  type_string_test.cc
+  EXCLUDE stdio_filebuf.h)
 
 add_executable(util-bitset_test bitset_test.cc)
 target_link_libraries(util-bitset_test gtest gtest_main util)

@@ -22,7 +22,7 @@ EXPECT_HELP = """\
 ==========
 argue-demo
 ==========
-version: 0.0.1
+version: 0.1.3dev1
 author : Josh Bialkowski <josh.bialkowski@gmail.com>
 copyright: (C) 2018
 
@@ -37,6 +37,7 @@ Flags:
 Positionals:
 ------------
 integer             an integer for the accumulator
+                    choices=[1, 2, 3, 4]
 """
 
 

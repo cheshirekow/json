@@ -3,10 +3,8 @@ if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/googletest)
   message("Enabling third_party:googletest for this checkout")
   add_library(gtest STATIC googletest/src/gtest-all.cc)
   add_library(gtest-shared SHARED googletest/src/gtest-all.cc)
-  set_target_properties(
-    gtest gtest-shared PROPERTIES
-    OUTPUT_NAME gtest
-    DEBUG_POSTFIX d)
+  set_target_properties(gtest gtest-shared PROPERTIES OUTPUT_NAME gtest
+                                                      DEBUG_POSTFIX d)
 
   foreach(_target gtest gtest-shared)
     target_include_directories(${_target} SYSTEM PUBLIC googletest/include)
@@ -61,20 +59,19 @@ if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/re2)
 
   add_library(re2 STATIC ${re2_sources})
   add_library(re2-shared SHARED ${re2_sources})
-  set_target_properties(
-    re2 re2-shared PROPERTIES
-    OUTPUT_NAME re2
-    DEBUG_POSTFIX d)
+  set_target_properties(re2 re2-shared PROPERTIES OUTPUT_NAME re2 DEBUG_POSTFIX
+                                                                  d)
   foreach(_target re2 re2-shared)
     target_link_libraries(${_target} Threads::Threads)
   endforeach()
 
 endif()
 
-# NOTE(josh): don't build libfmt if it's not part of this sparse checkout
-if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/fmt)
-  add_subdirectory(fmt)
-endif()
+foreach(_subdir fmt)
+  if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/${_subdir})
+    add_subdirectory(${_subdir})
+  endif()
+endforeach()
 
 if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/CImg)
   add_library(cimg INTERFACE)
@@ -82,14 +79,11 @@ if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/CImg)
 endif()
 
 if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/phash)
-  set(phash_sources
-      phash/src/pHash.cpp)
+  set(phash_sources phash/src/pHash.cpp)
   add_library(phash STATIC ${phash_sources})
   add_library(phash-shared SHARED ${phash_sources})
-  set_target_properties(
-      phash phash-shared PROPERTIES
-      OUTPUT_NAME phash
-      DEBUG_POSTFIX d)
+  set_target_properties(phash phash-shared PROPERTIES OUTPUT_NAME phash
+                                                      DEBUG_POSTFIX d)
   foreach(_target phash phash-shared)
     target_include_directories(${_target} PUBLIC phash/include)
     target_include_directories(${_target} PRIVATE phash/private)

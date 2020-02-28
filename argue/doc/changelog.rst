@@ -6,8 +6,52 @@ Changelog
 v0.1 series
 -----------
 
-v0.1.2 -- in progress
-=====================
+v0.1.3
+======
+
+dev1:
+-----
+
+* On error, usage string is appended to exception message, meaning that
+  subparser usage is printed rather than superparser when subparser is
+  missing a required argument.
+* Fix buffer underflow in subparser action when invalid subcommand is used
+* Argue --help can now dump JSON instead of text format.
+* Argue programs now inherently suports bash autocompletion
+* Registering the same action twice will now throw an exception
+* AddArgument returns the kwarg object, meaning that fields can be set after
+  the call instead of during (for compilers like GCC which don't support
+  designated initializers.
+
+Closes: 405abc1, 4f5e576, db38521, e95f5f5
+
+dev2:
+-----
+
+* Split argue.h/argue.cc into separate files based on concepts
+* Remove argue utilities duplicated in util/
+* Switch to lower_snake_case method style
+* Metadata version number is a string
+* Get rid of ARGUE_EMPTY macros
+
+Closes: 0310925, 8d56785
+
+dev3:
+-----
+
+* Implement keywords API
+* Unify StoreScalar and StoreList into StoreValue
+* Assigning to nargs will not replace the action
+* If the program user provides a long flag which is not an exact match but is
+  a unique prefix of a known flag, then match that flag.
+* Pass column size into get_help() and get_prolog() so that actions can
+  format their own help text.
+
+Closes: 41e5630, 504d241, 73c5d7a, aead983, d5c7d88
+
+
+v0.1.2
+======
 
 * Add support for ``--version`` and ``--help`` without the corresponding short
   flag (i.e. no ``-v`` or ``-h``)

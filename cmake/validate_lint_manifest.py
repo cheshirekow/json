@@ -10,9 +10,11 @@ import io
 import os
 import logging
 import re
+import shlex
 import sys
 
 KNOWN_EXTENSIONS = [
+    # ".bzl",
     ".cmake",
     ".c",
     ".cc",
@@ -22,7 +24,9 @@ KNOWN_EXTENSIONS = [
     ".hxx",
     ".hpp",
     ".js",
+    ".tcc",
     ".py",
+    # ".sh",
 ]
 
 
@@ -33,7 +37,27 @@ def has_known_extension(filename):
   return False
 
 
+def has_known_shebang(filepath):
+  with io.open(filepath, "rb") as infile:
+    shebang = infile.read(2)
+    if shebang != b"#!":
+      return False
+    interp = infile.readline().strip().decode("utf-8")
+  parts = shlex.split(interp)
+  if len(parts) == 2:
+    if parts[0] == "/usr/bin/env":
+      return parts[1] in ("bash", "python")
+  else:
+    if interp.startswith("/usr/bin/python"):
+      return True
+    if interp == "/bin/bash":
+      return True
+  return False
+
+
 SENTINEL_NAMES = [
+    # "BUILD",
+    # "WORKSPACE",
     "CMakeLists.txt",
 ]
 
@@ -67,6 +91,8 @@ def get_source_manifest(rootdir, exclude_pattern):
         continue
 
       relpath_file = os.path.join(relpath_dir, filename)
+      fullpath_file = os.path.join(directory, filename)
+
       if relpath_dir == ".":
         relpath_file = filename
 
@@ -74,6 +100,9 @@ def get_source_manifest(rootdir, exclude_pattern):
         excluded.append(relpath_file)
         continue
       if has_known_extension(filename) or is_sentinel_name(filename):
+        manifest.append(relpath_file)
+        continue
+      if has_known_shebang(fullpath_file):
         manifest.append(relpath_file)
         continue
   return manifest, excluded
@@ -125,6 +154,7 @@ def main():
         "The following files are missing from the generated manifests:"
         "\n  %s", "\n  ".join(sorted(missing)))
     returncode = 1
+
   if extra:
     logging.error(
         "The following files listed in the lint manifest are not found in"

@@ -22,6 +22,12 @@ std::string to_lower(const std::string& instr) {
   return outstr;
 }
 
+std::string to_upper(const std::string& instr) {
+  std::string outstr(instr.size(), '0');
+  std::transform(instr.begin(), instr.end(), outstr.begin(), ::toupper);
+  return outstr;
+}
+
 bool starts_with(const std::string& haystack, const std::string& needle,
                  bool case_sensitive) {
   if (case_sensitive) {

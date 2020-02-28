@@ -239,6 +239,11 @@ class Dumper {
   template <class Container>
   int dump_container_field(const re2::StringPiece& key, const Container& value);
 
+  // Dump a field given it's name (as a string) and prep for the value. Pushes
+  // event notifications for the field key and value followed by the actual
+  // string. The next dump should be a value, object, or list.
+  int dump_field_prefix(const re2::StringPiece& key);
+
   // Dump a field given it's name (as a string) and value. Pushes event
   // notifications for the field key and value followed by the actual
   // string and value.
@@ -851,13 +856,9 @@ int Registry::dump_value(const T& value, Dumper* dumper) const {
 // -----------------------------------------------------------------------------
 //    class Dumper
 // -----------------------------------------------------------------------------
-
 template <class T>
 int Dumper::dump_field(const re2::StringPiece& key, const T& value) {
-  int result = 0;
-  this->dump_event(DumpEvent::OBJECT_KEY);
-  result |= registry_->dump_scalar(key, this);
-  this->dump_event(DumpEvent::OBJECT_VALUE);
+  int result = dump_field_prefix(key);
   result |= registry_->dump_value(value, this);
   return result;
 }

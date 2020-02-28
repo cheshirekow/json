@@ -23,7 +23,7 @@ inline std::string hacky_type_string() {
 }
 
 #if GNU
-#  include <cxxabi.h>
+#include <cxxabi.h>
 
 template <typename T>
 inline std::string type_string() {

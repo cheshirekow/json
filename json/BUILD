@@ -1,19 +1,20 @@
 package(default_visibility=["//visibility:public"])
 
-cc_library(name="json",
-           hdrs=glob(["*.h"]),
-           srcs=["builder.cc",
-                 "item.cc",
-                 "json.cc",
-                 "parse.cc",
-                 "pipeline.cc",
-                 "type_registry.cc",
-                 "util.cc",
-                 "variant.cc"],
-           deps=["//third_party/fmt:fmt",
-                 "//third_party:re2",
-                 "//util:util",
-                 "@system//:glog"])
+cc_library(
+    name="json",
+    hdrs=glob(["*.h"]),
+    srcs=["builder.cc",
+          "item.cc",
+          "json.cc",
+          "parse.cc",
+          "pipeline.cc",
+          "type_registry.cc",
+          "util.cc",
+          "variant.cc"],
+    deps=["//third_party/fmt:fmt",
+          "//third_party:re2",
+          "//util:util",
+          "@system//:glog"])
 
 cc_binary(name="json.exe",
           srcs=["main.cc"],

@@ -10,6 +10,7 @@ include(${CMAKE_SOURCE_DIR}/cmake/codestyle.cmake)
 include(${CMAKE_SOURCE_DIR}/cmake/ctest_helpers.cmake)
 include(${CMAKE_SOURCE_DIR}/cmake/doctools.cmake)
 include(${CMAKE_SOURCE_DIR}/cmake/pkgconfig.cmake)
+include(${CMAKE_SOURCE_DIR}/cmake/wrappers.cmake)
 
 detect_buildenv()
 if(NOT CMAKE_INSTALL_PREFIX)
@@ -30,6 +31,7 @@ pkg_find(
   PKG gtk+-3.0
   PKG gtkmm-3.0
   PKG libcurl
+  PKG libelf
   PKG libglog
   PKG libpng NAMES libpng12 libpng16
   PKG librtlsdr
@@ -38,6 +40,7 @@ pkg_find(
   PKG vulkan
   PKG x11-xcb)
 
+# TODO(josh): can we get rid of these with some interface libraries?
 include_directories(${CMAKE_SOURCE_DIR})
 include_directories(${CMAKE_SOURCE_DIR}/third_party/googletest/include)
 include_directories(${CMAKE_SOURCE_DIR}/third_party/re2)

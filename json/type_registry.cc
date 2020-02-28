@@ -66,6 +66,14 @@ Dumper::Dumper(const Registry* registry, const SerializeOpts& opts)
   }
 }
 
+int Dumper::dump_field_prefix(const re2::StringPiece& key) {
+  int result = 0;
+  this->dump_event(DumpEvent::OBJECT_KEY);
+  result |= registry_->dump_scalar(key, this);
+  this->dump_event(DumpEvent::OBJECT_VALUE);
+  return result;
+}
+
 // -----------------------------------------------------------------------------
 //    class DumpGuard
 // -----------------------------------------------------------------------------

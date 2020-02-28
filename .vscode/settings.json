@@ -67,9 +67,6 @@
     "rope": "cpp",
     "slist": "cpp",
     "valarray": "cpp",
-    "BUILD": "python",
-    "WORKSPACE": "python",
-    "*.bzl": "python",
     "condition_variable": "cpp",
     "optional": "cpp",
     "hash_map": "cpp",
@@ -84,7 +81,8 @@
     "memory_resource": "cpp",
     "random": "cpp",
     "set": "cpp",
-    "string": "cpp"
+    "string": "cpp",
+    "cfenv": "cpp"
   },
   // exclude from browser
   "files.exclude": {

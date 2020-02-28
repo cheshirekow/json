@@ -176,17 +176,17 @@ int main(int argc, char** argv) {
                         .copyright = "(C) 2018",
                         .prolog = kProlog});
   ProgramOpts opts;
-  auto subparsers = parser.AddSubparsers(
+  auto subparsers = parser.add_subparsers(
       "command", &opts.command,
       {.help = "Each subcommand has it's own options and arguments, see "
                "individual subcommand help."});
-  auto lex_parser = subparsers->AddParser(
+  auto lex_parser = subparsers->add_parser(
       "lex", {.help = "Lex the file and dump token information"});
-  auto parse_parser = subparsers->AddParser(
+  auto parse_parser = subparsers->add_parser(
       "parse", {.help = "Parse the file and dump actionable parse events"});
-  auto verify_parser = subparsers->AddParser(
+  auto verify_parser = subparsers->add_parser(
       "verify", {.help = "Parse the file and exit with 0 if it's valid json"});
-  auto markup_parser = subparsers->AddParser(
+  auto markup_parser = subparsers->add_parser(
       "markup", {.help = "Parse and dump the contents with HTML markup"});
 
   for (auto& subparser :
@@ -194,17 +194,17 @@ int main(int argc, char** argv) {
     argue::KWargs<std::string> kwargs{
         //
         .action = "store",  .nargs = "?",
-        .const_ = {},       .default_ = "-",
+        .const_ = {},       .default_ = std::string("-"),
         .choices = {},      .dest = {},
         .required = false,  .help = "Path to input, '-' for stdin",
         .metavar = "infile"};
 
-    subparser->AddArgument(  //
+    subparser->add_argument(  //
         "infile", &opts.infile,
         {.action = "store",
          .nargs = "?",
          .const_ = {},
-         .default_ = "-",
+         .default_ = std::string("-"),
          .choices = {},
          .dest = {},
          .required = false,
@@ -215,10 +215,10 @@ int main(int argc, char** argv) {
   argue::KWargs<bool> argopts{};
   argopts.action = "store_true";
   argopts.help = "output just the content";
-  markup_parser->AddArgument("-o", "--omit-template",
-                             &opts.markup.omit_template, argopts);
+  markup_parser->add_argument("-o", "--omit-template",
+                              &opts.markup.omit_template, argopts);
 
-  int parse_result = parser.ParseArgs(argc, argv);
+  int parse_result = parser.parse_args(argc, argv);
   switch (parse_result) {
     case argue::PARSE_ABORTED:
       return 0;
