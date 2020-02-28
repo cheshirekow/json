@@ -18,15 +18,15 @@ namespace {{ns}} {
 int parsefields_{{escapename(qname)}}(  //
     const json::stream::Registry& registry, const re2::StringPiece& key,
     json::LexerParser* stream, {{qname}}* out) {
-  uint64_t keyid = json::RuntimeHash(key);
+  uint64_t keyid = json::runtime_hash(key);
   switch (keyid) {
     {% for field in fields -%}
-    case json::Hash("{{field}}"):
+    case json::hash("{{field}}"):
       registry.parse_value(stream, &out->{{field}});
       break;
     {% endfor %}
     default:
-      json::SinkValue(stream);
+      json::sink_value(stream);
       return 1;
   }
   return 0;
@@ -61,4 +61,3 @@ static const int __dummy0 = register_types(json::stream::global_registry());
 {% for ns in ctx.namespaces[::-1] %}
 }  // namespace {{ns}}
 {% endfor %}
-

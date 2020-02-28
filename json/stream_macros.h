@@ -67,7 +67,7 @@
 // This is the actual meat of the macro system: simply a case statement to
 // dispatch the appropriate parser for the given field (by name)
 #define JSON_CASE_IF_NOT_PAREN_0(key)        \
-  case json::Hash(#key):                     \
+  case json::hash(#key):                     \
     registry.parse_value(stream, &out->key); \
     break;
 
@@ -244,11 +244,11 @@
   int JSON_CAT(parsefields_, SUFFIX)(                                      \
       const json::stream::Registry& registry, const re2::StringPiece& key, \
       json::LexerParser* stream, ValueType* out) {                         \
-    uint64_t keyid = json::RuntimeHash(key);                               \
+    uint64_t keyid = json::runtime_hash(key);                              \
     switch (keyid) {                                                       \
       JSON_MAKE_CASES(__VA_ARGS__)                                         \
       default:                                                             \
-        json::SinkValue(stream);                                           \
+        json::sink_value(stream);                                          \
         return 1;                                                          \
     }                                                                      \
     return 0;                                                              \

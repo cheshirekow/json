@@ -17,15 +17,15 @@ namespace json {
 // types
 
 template <typename T>
-int ParseInteger(const Token& token, T* value);
+int parse_integer(const Token& token, T* value);
 
 template <typename T>
-int ParseRealNumber(const Token& token, T* value);
+int parse_real_number(const Token& token, T* value);
 
-int ParseBoolean(const Token& token, bool* value);
+int parse_boolean(const Token& token, bool* value);
 
 template <size_t N>
-int ParseString(const Token& token, char (*str)[N]);
+int parse_string(const Token& token, char (*str)[N]);
 
 // -----------------------------------------------------------------------------
 //    Sink Functions
@@ -34,15 +34,15 @@ int ParseString(const Token& token, char (*str)[N]);
 // actually looking at the data.
 
 // Consume a value, ignoring it's contents
-int SinkValue(const Event& event, LexerParser* stream);
+int sink_value(const Event& event, LexerParser* stream);
 
-int SinkValue(LexerParser* stream);
+int sink_value(LexerParser* stream);
 
 // Consume an object, ignoring it's contents
-int SinkObject(LexerParser* stream);
+int sink_object(LexerParser* stream);
 
 // Consume a list, ignoring it's contents
-int SinkList(LexerParser* stream);
+int sink_list(LexerParser* stream);
 
 }  // namespace json
 
@@ -63,7 +63,7 @@ namespace json {
 // -----------------------------------------------------------------------------
 
 template <typename T>
-int ParseInteger(const Token& token, T* obj) {
+int parse_integer(const Token& token, T* obj) {
   if (token.typeno != Token::NUMERIC_LITERAL) {
     LOG(WARNING) << fmt::format("Can't parse token of type '{}' as an integer",
                                 token.typeno);
@@ -92,7 +92,7 @@ int ParseInteger(const Token& token, T* obj) {
 }
 
 template <typename T>
-int ParseRealNumber(const Token& token, T* obj) {
+int parse_real_number(const Token& token, T* obj) {
   if (token.typeno != Token::NUMERIC_LITERAL) {
     LOG(WARNING) << fmt::format(
         "Can't parse token of type '{}' as a real number", token.typeno);
@@ -108,7 +108,7 @@ int ParseRealNumber(const Token& token, T* obj) {
 }
 
 template <size_t N>
-int ParseString(const Token& token, char (*buf)[N]) {
+int parse_string(const Token& token, char (*buf)[N]) {
   // NOTE(josh): strip literal quotes from beginning/end of the string.
   re2::StringPiece unquoted =
       token.spelling.substr(1, token.spelling.size() - 2);

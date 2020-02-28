@@ -8,7 +8,7 @@ using namespace json;  // NOLINT
 TEST(BuilderTest, SerializeTest) {
   using namespace json::insource;  // NOLINT
   Variant tree =                   //
-      json::Build(O{"hello", 123, "world",
+      json::build(O{"hello", 123, "world",
                     O{"foo", O{
                                  "far", 123,      //
                                  "fuz", "hello",  //
@@ -29,7 +29,7 @@ TEST(BuilderTest, SerializeTest) {
 TEST(BuilderTest, InSourceKnownTrees) {
   using namespace json::insource;  // NOLINT
   Variant tree =                   //
-      json::Build(O{"hello", 123, "world",
+      json::build(O{"hello", 123, "world",
                     O{"foo", O{
                                  "far", 123,      //
                                  "fuz", "hello",  //
@@ -62,13 +62,13 @@ TEST(BuilderTest, InSourceKnownTrees) {
   std::vector<char> buf;
   buf.resize(256, 0);
 
-  size_t size1 = tree.Serialize(
+  size_t size1 = tree.serialize(
       &buf[0], &buf.back(),
       json::SerializeOpts{.indent = 0, .separators = {": ", ","}});
   EXPECT_EQ(size1, 109);
   EXPECT_EQ(expect1, std::string(&buf[0]));
 
-  size_t size2 = tree.Serialize(
+  size_t size2 = tree.serialize(
       &buf[0], &buf.back(),
       json::SerializeOpts{.indent = 2, .separators = {": ", ","}});
   EXPECT_EQ(size2, 171);

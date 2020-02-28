@@ -14,17 +14,17 @@ TEST(LexerTest, StringLiteralTest) {
 
   Scanner scanner;
   Error err{{}, Error::NOERROR};
-  ASSERT_EQ(0, scanner.Init(&err));
-  ASSERT_EQ(0, scanner.Begin(test_string));
+  ASSERT_EQ(0, scanner.init(&err));
+  ASSERT_EQ(0, scanner.begin(test_string));
 
   for (size_t idx = 0; idx < 7; ++idx) {
-    re2::StringPiece capture = scanner.GetPiece();
-    ASSERT_EQ(0, scanner.Pump(&tokens[idx], &err))
+    re2::StringPiece capture = scanner.get_piece();
+    ASSERT_EQ(0, scanner.pump(&tokens[idx], &err))
         << err.what() << " for token " << idx << " at \""
         << capture.substr(0, 10) << "\"";
   }
 
-  ASSERT_EQ(-1, scanner.Pump(&tokens[7], &err));
+  ASSERT_EQ(-1, scanner.pump(&tokens[7], &err));
   ASSERT_EQ(Error::LEX_INPUT_FINISHED, err.code);
   EXPECT_EQ(Token::PUNCTUATION, tokens[0].typeno);
   EXPECT_EQ(Token::STRING_LITERAL, tokens[1].typeno);
@@ -41,19 +41,19 @@ TEST(LexerTest, NumericLiteralTest) {
   Error err{{}, Error::NOERROR};
 
   Scanner scanner;
-  ASSERT_EQ(0, scanner.Init(&err));
+  ASSERT_EQ(0, scanner.init(&err));
 
   std::string test_string = "{\"foo\":1234}";
-  ASSERT_EQ(0, scanner.Begin(test_string));
+  ASSERT_EQ(0, scanner.begin(test_string));
 
   for (size_t idx = 0; idx < 5; ++idx) {
-    re2::StringPiece capture = scanner.GetPiece();
-    ASSERT_EQ(0, scanner.Pump(&tokens[idx], &err))
+    re2::StringPiece capture = scanner.get_piece();
+    ASSERT_EQ(0, scanner.pump(&tokens[idx], &err))
         << err.what() << " for token " << idx << " at \""
         << capture.substr(0, 10) << "\"";
   }
 
-  ASSERT_EQ(-1, scanner.Pump(&tokens[5], &err));
+  ASSERT_EQ(-1, scanner.pump(&tokens[5], &err));
   ASSERT_EQ(Error::LEX_INPUT_FINISHED, err.code);
   EXPECT_EQ(Token::PUNCTUATION, tokens[0].typeno);
   EXPECT_EQ(Token::STRING_LITERAL, tokens[1].typeno);
@@ -63,16 +63,16 @@ TEST(LexerTest, NumericLiteralTest) {
 
   test_string = "{\"foo\":-1234}";
   err.code = Error::NOERROR;
-  ASSERT_EQ(0, scanner.Begin(test_string));
+  ASSERT_EQ(0, scanner.begin(test_string));
 
   for (size_t idx = 0; idx < 5; ++idx) {
-    re2::StringPiece capture = scanner.GetPiece();
-    ASSERT_EQ(0, scanner.Pump(&tokens[idx], &err))
+    re2::StringPiece capture = scanner.get_piece();
+    ASSERT_EQ(0, scanner.pump(&tokens[idx], &err))
         << err.what() << " for token " << idx << " at \""
         << capture.substr(0, 10) << "\"";
   }
 
-  ASSERT_EQ(-1, scanner.Pump(&tokens[5], &err));
+  ASSERT_EQ(-1, scanner.pump(&tokens[5], &err));
   ASSERT_EQ(Error::LEX_INPUT_FINISHED, err.code);
   EXPECT_EQ(Token::PUNCTUATION, tokens[0].typeno);
   EXPECT_EQ(Token::STRING_LITERAL, tokens[1].typeno);
@@ -82,16 +82,16 @@ TEST(LexerTest, NumericLiteralTest) {
 
   test_string = "{\"foo\":12.34}";
   err.code = Error::NOERROR;
-  ASSERT_EQ(0, scanner.Begin(test_string));
+  ASSERT_EQ(0, scanner.begin(test_string));
 
   for (size_t idx = 0; idx < 5; ++idx) {
-    re2::StringPiece capture = scanner.GetPiece();
-    ASSERT_EQ(0, scanner.Pump(&tokens[idx], &err))
+    re2::StringPiece capture = scanner.get_piece();
+    ASSERT_EQ(0, scanner.pump(&tokens[idx], &err))
         << err.what() << " for token " << idx << " at \""
         << capture.substr(0, 10) << "\"";
   }
 
-  ASSERT_EQ(-1, scanner.Pump(&tokens[5], &err));
+  ASSERT_EQ(-1, scanner.pump(&tokens[5], &err));
   ASSERT_EQ(Error::LEX_INPUT_FINISHED, err.code);
   EXPECT_EQ(Token::PUNCTUATION, tokens[0].typeno);
   EXPECT_EQ(Token::STRING_LITERAL, tokens[1].typeno);
@@ -101,16 +101,16 @@ TEST(LexerTest, NumericLiteralTest) {
 
   test_string = "{\"foo\":12.34e+10}";
   err.code = Error::NOERROR;
-  ASSERT_EQ(0, scanner.Begin(test_string));
+  ASSERT_EQ(0, scanner.begin(test_string));
 
   for (size_t idx = 0; idx < 5; ++idx) {
-    re2::StringPiece capture = scanner.GetPiece();
-    ASSERT_EQ(0, scanner.Pump(&tokens[idx], &err))
+    re2::StringPiece capture = scanner.get_piece();
+    ASSERT_EQ(0, scanner.pump(&tokens[idx], &err))
         << err.what() << " for token " << idx << " at \""
         << capture.substr(0, 10) << "\"";
   }
 
-  ASSERT_EQ(-1, scanner.Pump(&tokens[5], &err));
+  ASSERT_EQ(-1, scanner.pump(&tokens[5], &err));
   ASSERT_EQ(Error::LEX_INPUT_FINISHED, err.code);
   EXPECT_EQ(Token::PUNCTUATION, tokens[0].typeno);
   EXPECT_EQ(Token::STRING_LITERAL, tokens[1].typeno);
@@ -120,16 +120,16 @@ TEST(LexerTest, NumericLiteralTest) {
 
   test_string = "{\"foo\":12.34e-10}";
   err.code = Error::NOERROR;
-  ASSERT_EQ(0, scanner.Begin(test_string));
+  ASSERT_EQ(0, scanner.begin(test_string));
 
   for (size_t idx = 0; idx < 5; ++idx) {
-    re2::StringPiece capture = scanner.GetPiece();
-    ASSERT_EQ(0, scanner.Pump(&tokens[idx], &err))
+    re2::StringPiece capture = scanner.get_piece();
+    ASSERT_EQ(0, scanner.pump(&tokens[idx], &err))
         << err.what() << " for token " << idx << " at \""
         << capture.substr(0, 10) << "\"";
   }
 
-  ASSERT_EQ(-1, scanner.Pump(&tokens[5], &err));
+  ASSERT_EQ(-1, scanner.pump(&tokens[5], &err));
   ASSERT_EQ(Error::LEX_INPUT_FINISHED, err.code);
   EXPECT_EQ(Token::PUNCTUATION, tokens[0].typeno);
   EXPECT_EQ(Token::STRING_LITERAL, tokens[1].typeno);
@@ -146,20 +146,20 @@ TEST(LexerTest, BooleanLiteralTest) {
   Error err;
   Scanner scanner;
 
-  ASSERT_EQ(0, scanner.Init(&err));
+  ASSERT_EQ(0, scanner.init(&err));
 
   test_string = "{\"foo\":true}";
   err.code = Error::NOERROR;
-  ASSERT_EQ(0, scanner.Begin(test_string));
+  ASSERT_EQ(0, scanner.begin(test_string));
 
   for (size_t idx = 0; idx < 5; ++idx) {
-    re2::StringPiece capture = scanner.GetPiece();
-    ASSERT_EQ(0, scanner.Pump(&tokens[idx], &err))
+    re2::StringPiece capture = scanner.get_piece();
+    ASSERT_EQ(0, scanner.pump(&tokens[idx], &err))
         << err.what() << " for token " << idx << " at \""
         << capture.substr(0, 10) << "\"";
   }
 
-  ASSERT_EQ(-1, scanner.Pump(&tokens[5], &err));
+  ASSERT_EQ(-1, scanner.pump(&tokens[5], &err));
   ASSERT_EQ(Error::LEX_INPUT_FINISHED, err.code);
   EXPECT_EQ(Token::PUNCTUATION, tokens[0].typeno);
   EXPECT_EQ(Token::STRING_LITERAL, tokens[1].typeno);
@@ -169,16 +169,16 @@ TEST(LexerTest, BooleanLiteralTest) {
 
   test_string = "{\"foo\":false}";
   err.code = Error::NOERROR;
-  ASSERT_EQ(0, scanner.Begin(test_string));
+  ASSERT_EQ(0, scanner.begin(test_string));
 
   for (size_t idx = 0; idx < 5; ++idx) {
-    re2::StringPiece capture = scanner.GetPiece();
-    ASSERT_EQ(0, scanner.Pump(&tokens[idx], &err))
+    re2::StringPiece capture = scanner.get_piece();
+    ASSERT_EQ(0, scanner.pump(&tokens[idx], &err))
         << err.what() << " for token " << idx << " at \""
         << capture.substr(0, 10) << "\"";
   }
 
-  ASSERT_EQ(-1, scanner.Pump(&tokens[5], &err));
+  ASSERT_EQ(-1, scanner.pump(&tokens[5], &err));
   ASSERT_EQ(Error::LEX_INPUT_FINISHED, err.code);
   EXPECT_EQ(Token::PUNCTUATION, tokens[0].typeno);
   EXPECT_EQ(Token::STRING_LITERAL, tokens[1].typeno);
@@ -195,20 +195,20 @@ TEST(LexerTest, NullLiteralTest) {
   Error err;
   Scanner scanner;
 
-  ASSERT_EQ(0, scanner.Init(&err));
+  ASSERT_EQ(0, scanner.init(&err));
 
   test_string = "{\"foo\":null}";
   err.code = Error::NOERROR;
-  ASSERT_EQ(0, scanner.Begin(test_string));
+  ASSERT_EQ(0, scanner.begin(test_string));
 
   for (size_t idx = 0; idx < 5; ++idx) {
-    re2::StringPiece capture = scanner.GetPiece();
-    ASSERT_EQ(0, scanner.Pump(&tokens[idx], &err))
+    re2::StringPiece capture = scanner.get_piece();
+    ASSERT_EQ(0, scanner.pump(&tokens[idx], &err))
         << err.what() << " for token " << idx << " at \""
         << capture.substr(0, 10) << "\"";
   }
 
-  ASSERT_EQ(-1, scanner.Pump(&tokens[5], &err));
+  ASSERT_EQ(-1, scanner.pump(&tokens[5], &err));
   ASSERT_EQ(Error::LEX_INPUT_FINISHED, err.code);
   EXPECT_EQ(Token::PUNCTUATION, tokens[0].typeno);
   EXPECT_EQ(Token::STRING_LITERAL, tokens[1].typeno);
@@ -219,25 +219,25 @@ TEST(LexerTest, NullLiteralTest) {
 
 TEST(LexerTest, ErrorOnMalformed) {
   Error error;
-  EXPECT_EQ(0, VerifyLex("{\"foo\":\"bar\"}", &error))
+  EXPECT_EQ(0, verify_lex("{\"foo\":\"bar\"}", &error))
       << "Error (" << error.code << "): " << error.msg;
 
   // Comments are not allowed
   Token tokens[10];
-  ASSERT_GT(0, Lex("{} #hello", &tokens, &error));
-  ASSERT_GT(0, VerifyLex("{} #hello", &error));
+  ASSERT_GT(0, lex("{} #hello", &tokens, &error));
+  ASSERT_GT(0, verify_lex("{} #hello", &error));
   EXPECT_EQ(Error::LEX_INVALID_TOKEN, error.code);
-  ASSERT_GT(0, VerifyLex("{} //hello", &error));
+  ASSERT_GT(0, verify_lex("{} //hello", &error));
   EXPECT_EQ(Error::LEX_INVALID_TOKEN, error.code);
 
   // Incomplete string literal
-  ASSERT_GT(0, VerifyLex("{\"foo\" : \"hello", &error));
+  ASSERT_GT(0, verify_lex("{\"foo\" : \"hello", &error));
   EXPECT_EQ(Error::LEX_INVALID_TOKEN, error.code);
 
   // Invalid numeric literal
   // NOTE(josh): the string is valid up through
   // "{\n\"foo\" : 1,\n\"bar\": 12.3"
-  ASSERT_GT(0, VerifyLex("{\n\"foo\" : 1,\n\"bar\": 12.3.4}", &error));
+  ASSERT_GT(0, verify_lex("{\n\"foo\" : 1,\n\"bar\": 12.3.4}", &error));
   EXPECT_EQ(Error::LEX_INVALID_TOKEN, error.code);
   EXPECT_EQ(2, error.loc.lineno);
   EXPECT_EQ(11, error.loc.colno);

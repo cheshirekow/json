@@ -15,7 +15,7 @@ struct Item;
 struct Group {
   Item* head_;
   Item* tail_;
-  void Append(Item* item);
+  void append(Item* item);
 };
 
 struct Object : public Group {};
@@ -55,7 +55,7 @@ struct Item {
 
   // TODO(josh): evaluate if there's a performance improvement for inlining
   // these functions.
-  void AssignKey(const re2::StringPiece& string);
+  void assign_key(const re2::StringPiece& string);
   void operator=(const re2::StringPiece& string);
   void operator=(double inval);
   void operator=(int64_t inval);
@@ -63,7 +63,7 @@ struct Item {
   void operator=(std::nullptr_t);
   void operator=(const List& list);
   void operator=(const Object& object);
-  Group* AsGroup();
+  Group* as_group();
 
   // object accessor, assume object is an object and select an item out of it
   // by key
@@ -77,8 +77,8 @@ struct Item {
 class ItemParser : public Parser {
  public:
   ItemParser(Item* begin, Item* end);
-  Item* AllocItem(Error* error);
-  int Consume(const Token& tok, Error* error);
+  Item* alloc_item(Error* error);
+  int consume(const Token& tok, Error* error);
 
  private:
   Item* mem_begin_;

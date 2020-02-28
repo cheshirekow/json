@@ -13,7 +13,7 @@ Event& EventIterator::operator*() {
 }
 
 EventIterator& EventIterator::operator++() {
-  stream_->GetNextEvent(&event_);
+  stream_->get_next_event(&event_);
   return *this;
 }
 

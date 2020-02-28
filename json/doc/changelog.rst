@@ -2,6 +2,11 @@
 Changelog
 =========
 
+v0.2.4
+======
+
+* change all functions to GNU style snake_case
+
 v0.2.3
 ======
 

@@ -11,7 +11,7 @@
 #include "util/fixed_string_stream.h"
 
 #define JSON_VERSION \
-  { 0, 2, 3 }
+  { 0, 2, 4 }
 
 // Tools for parsing and emitting JSON formatted data
 namespace json {
@@ -41,7 +41,7 @@ struct Token {
   re2::StringPiece spelling;
   SourceLocation location;
 
-  static const char* ToString(TypeNo);
+  static const char* to_string(TypeNo);
 };
 
 // Filled for each actionable event discovered by the parser. An actionable
@@ -63,7 +63,7 @@ struct Event {
   TypeNo typeno;  //< What kind of event this is
   Token token;    //< the token for the event
 
-  static const char* ToString(TypeNo value);
+  static const char* to_string(TypeNo value);
 };
 
 // Errors are reported via one of these objects
@@ -93,7 +93,7 @@ struct Error {
     return msg;
   }
 
-  static const char* ToString(Code);
+  static const char* to_string(Code);
 };
 
 // Maintains incremental state for tokenization of a JSON file.
@@ -107,18 +107,18 @@ class Scanner {
   // -1: Error occured
   //  0: Successfully initialized
   //  1: no-op, already successfully initialized
-  int Init(Error* error = nullptr);
+  int init(Error* error = nullptr);
 
   // Set the contents to be scanned.
-  int Begin(const re2::StringPiece& piece);
+  int begin(const re2::StringPiece& piece);
 
   // Match and return the next token. Return 0 on succes and -1 on error.
   // if err is not NULL and an error occurs, will be set to a string
   // describing the error message.
-  int Pump(Token* tok, Error* error = nullptr);
+  int pump(Token* tok, Error* error = nullptr);
 
   // Return the current string piece, mostly for debugging purposes
-  re2::StringPiece GetPiece();
+  re2::StringPiece get_piece();
 
  private:
   re2::StringPiece piece_;
@@ -141,21 +141,21 @@ class Scanner {
 // Scan/Tokenize the source string until completion; Store the tokens in `buf`.
 // Return the number of tokens that were lexed (which may be greater than `n`)
 // or -1 on error.
-int Lex(const re2::StringPiece& source, Token* buf, size_t n,
+int lex(const re2::StringPiece& source, Token* buf, size_t n,
         Error* error = nullptr);
 
 // Scan/Tokenize the source string until completion; Store the tokens in `buf`.
 // Return the number of tokens that were lexed (which may be greater than `n`)
 // or -1 on error.
 template <size_t N>
-int Lex(const re2::StringPiece& source, Token (*buf)[N],
+int lex(const re2::StringPiece& source, Token (*buf)[N],
         Error* error = nullptr) {
-  return Lex(source, &(*buf)[0], N, error);
+  return lex(source, &(*buf)[0], N, error);
 }
 
 // Lex the entire source and return 0 if no errors are encountered. Return -1
 // and fill `error` if any problems are encountered.
-int VerifyLex(const re2::StringPiece& source, Error* error);
+int verify_lex(const re2::StringPiece& source, Error* error);
 
 // Manages the state machine for parsing JSON structure from a stream of
 // tokens
@@ -172,7 +172,7 @@ class Parser {
   Parser();
 
   // Reset internal state
-  void Reset();
+  void reset();
 
   // Advance the internal parse state with the given token. Return 1 if an
   // actionable event has occured.
@@ -181,7 +181,7 @@ class Parser {
    *         * 0 - no actionable event
    *         * -1 - an error has occured, `error` is filled if not null
    */
-  int HandleToken(const Token& token, Event* event, Error* error = nullptr);
+  int handle_token(const Token& token, Event* event, Error* error = nullptr);
 
  protected:
   State state_;
@@ -195,9 +195,9 @@ class Parser {
 class LexerParser {
  public:
   LexerParser() {}
-  int Init(Error* error = nullptr);
-  int Begin(const re2::StringPiece& string);
-  int GetNextEvent(Event* event, Error* error = nullptr);
+  int init(Error* error = nullptr);
+  int begin(const re2::StringPiece& string);
+  int get_next_event(Event* event, Error* error = nullptr);
 
  private:
   Scanner scanner_;
@@ -208,21 +208,21 @@ class LexerParser {
 // Scan/Tokenize and Parse the source string until completion; Store the
 // parser events in `buf`. Return the number of events that were parsed (which
 // may be greater than `n`)  or -1 on error.
-int Parse(const re2::StringPiece& source, Event* buf, size_t n,
+int parse(const re2::StringPiece& source, Event* buf, size_t n,
           Error* error = nullptr);
 
 // Scan/Tokenize and Parse the source string until completion; Store the
 // parser events in `buf`. Return the number of events that were parsed (which
 // may be greater than `n`)  or -1 on error.
 template <size_t N>
-int Parse(const re2::StringPiece& source, Event (*buf)[N],
+int parse(const re2::StringPiece& source, Event (*buf)[N],
           Error* error = nullptr) {
-  return Parse(source, &(*buf)[0], N, error);
+  return parse(source, &(*buf)[0], N, error);
 }
 
 // Lex and Parse the entire source and return 0 if no errors are encountered.
 // Return -1 and fill `error` if any problems are encountered.
-int Verify(const re2::StringPiece& source, Error* error = nullptr);
+int verify(const re2::StringPiece& source, Error* error = nullptr);
 
 // Options for serialization
 struct SerializeOpts {
@@ -232,7 +232,7 @@ struct SerializeOpts {
 
 // Safely access elements from a c-style array
 template <size_t N>
-const char* SafeGet(const char* (&map)[N], size_t idx) {
+const char* safe_get(const char* (&map)[N], size_t idx) {
   if (idx < N) {
     return map[idx];
   } else {
@@ -247,8 +247,9 @@ extern const SerializeOpts kDefaultOpts;
 extern const SerializeOpts kCompactOpts;
 
 // Store an error code and source location and return an ostream that
-// can write to the message buffer.
-util::FixedBufStream<char> FmtError(Error* error, Error::Code code,
-                                    SourceLocation loc = {});
+// can write to the message buffer. The returned stream is value even if
+// the error is null (in which case the stream operator is a no-op)
+util::FixedBufStream<char> fmt_error(Error* error, Error::Code code,
+                                     SourceLocation loc = {});
 
 }  // namespace json

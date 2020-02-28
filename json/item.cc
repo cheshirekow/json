@@ -6,7 +6,7 @@
 namespace json {
 namespace item {
 
-void Group::Append(Item* item) {
+void Group::append(Item* item) {
   if (tail_) {
     tail_->next = item;
     tail_ = item;
@@ -15,7 +15,7 @@ void Group::Append(Item* item) {
   }
 }
 
-void Item::AssignKey(const re2::StringPiece& string) {
+void Item::assign_key(const re2::StringPiece& string) {
   this->typeno = JSON_KEY;
   this->store.string = string.substr(1, string.size() - 2);
 }
@@ -54,7 +54,7 @@ void Item::operator=(const Object& object) {
   this->store.object = object;
 }
 
-Group* Item::AsGroup() {
+Group* Item::as_group() {
   if (typeno == JSON_OBJECT) {
     return &(store.object);
   } else if (typeno == JSON_LIST) {
@@ -66,7 +66,7 @@ Group* Item::AsGroup() {
 
 Item kInvalidItem{};
 
-Item* GetNext(Item* item) {
+Item* get_next(Item* item) {
   if (item) {
     return item->next;
   } else {
@@ -80,14 +80,14 @@ const Item& Item::operator[](const char* query_key) const {
   }
 
   Item* key = store.object.head_;
-  Item* value = GetNext(key);
+  Item* value = get_next(key);
 
   while (key && value) {
     if (key->store.string == query_key) {
       return *value;
     }
-    key = GetNext(value);
-    value = GetNext(key);
+    key = get_next(value);
+    value = get_next(key);
   }
 
   return kInvalidItem;
@@ -104,7 +104,7 @@ const Item& Item::operator[](size_t query_idx) const {
 
   Item* item = store.object.head_;
   for (size_t idx = 0; idx < query_idx; idx++) {
-    item = GetNext(item);
+    item = get_next(item);
   }
 
   if (item) {
@@ -114,7 +114,7 @@ const Item& Item::operator[](size_t query_idx) const {
   }
 }
 
-int ParseToken(const Token& token, Item* item) {
+int parse_token(const Token& token, Item* item) {
   memset(item, 0, sizeof(Item));
 
   switch (token.typeno) {
@@ -162,7 +162,7 @@ int ParseToken(const Token& token, Item* item) {
 ItemParser::ItemParser(Item* begin, Item* end)
     : mem_begin_(begin), mem_write_(begin), mem_end_(end) {}
 
-Item* ItemParser::AllocItem(Error* error) {
+Item* ItemParser::alloc_item(Error* error) {
   if (mem_write_ < mem_end_) {
     Item* item = (mem_write_++);
     memset(item, 0, sizeof(Item));
@@ -172,9 +172,9 @@ Item* ItemParser::AllocItem(Error* error) {
   return nullptr;
 }
 
-int ItemParser::Consume(const Token& tok, Error* error) {
+int ItemParser::consume(const Token& tok, Error* error) {
   Event event{};
-  int err = HandleToken(tok, &event, error);
+  int err = handle_token(tok, &event, error);
   switch (err) {
     case -1:
     case 0:
@@ -185,9 +185,9 @@ int ItemParser::Consume(const Token& tok, Error* error) {
 
   switch (event.typeno) {
     case Event::OBJECT_BEGIN: {
-      Item* item = AllocItem(error);
+      Item* item = alloc_item(error);
       if (!item) {
-        FmtError(error, Error::PARSE_OOM, tok.location)
+        fmt_error(error, Error::PARSE_OOM, tok.location)
             << "Exceeded available item storage";
         return -2;
       }
@@ -195,16 +195,16 @@ int ItemParser::Consume(const Token& tok, Error* error) {
       (*item) = Object{};
 
       if (item_stack_.size()) {
-        item_stack_.back()->AsGroup()->Append(item);
+        item_stack_.back()->as_group()->append(item);
       }
       item_stack_.push_back(item);
       return 0;
     }
 
     case Event::LIST_BEGIN: {
-      Item* item = AllocItem(error);
+      Item* item = alloc_item(error);
       if (!item) {
-        FmtError(error, Error::PARSE_OOM, tok.location)
+        fmt_error(error, Error::PARSE_OOM, tok.location)
             << "Exceeded available item storage";
         return -3;
       }
@@ -212,59 +212,59 @@ int ItemParser::Consume(const Token& tok, Error* error) {
       (*item) = List{};
 
       if (item_stack_.size()) {
-        item_stack_.back()->AsGroup()->Append(item);
+        item_stack_.back()->as_group()->append(item);
       }
       item_stack_.push_back(item);
       return 0;
     }
 
     case Event::VALUE_LITERAL: {
-      Item* item = AllocItem(error);
+      Item* item = alloc_item(error);
       if (!item) {
-        FmtError(error, Error::PARSE_OOM, tok.location)
+        fmt_error(error, Error::PARSE_OOM, tok.location)
             << "Exceeded available item storage";
         return -4;
       }
 
-      ParseToken(tok, item);
+      parse_token(tok, item);
       if (!item_stack_.size()) {
-        FmtError(error, Error::PARSE_UNEXPECTED_TOKEN, tok.location)
+        fmt_error(error, Error::PARSE_UNEXPECTED_TOKEN, tok.location)
             << "Expected initial object ({}) or list ([]) but got "
             << tok.spelling;
         return -5;
       }
 
-      item_stack_.back()->AsGroup()->Append(item);
+      item_stack_.back()->as_group()->append(item);
       return 0;
     }
 
     case Event::OBJECT_KEY: {
       if (tok.typeno != Token::STRING_LITERAL) {
-        FmtError(error, Error::PARSE_UNEXPECTED_TOKEN, tok.location)
+        fmt_error(error, Error::PARSE_UNEXPECTED_TOKEN, tok.location)
             << "Expected a string literal (key) but got " << tok.spelling;
         return -6;
       }
 
-      Item* item = AllocItem(error);
+      Item* item = alloc_item(error);
       if (!item) {
         return -7;
       }
 
-      item->AssignKey(tok.spelling);
+      item->assign_key(tok.spelling);
 
       if (!item_stack_.size()) {
-        FmtError(error, Error::INTERNAL_ERROR, tok.location)
+        fmt_error(error, Error::INTERNAL_ERROR, tok.location)
             << "item_stack_ is empty" << tok.spelling;
         return -8;
       }
 
       if (item_stack_.back()->typeno != Item::JSON_OBJECT) {
-        FmtError(error, Error::INTERNAL_ERROR, tok.location)
+        fmt_error(error, Error::INTERNAL_ERROR, tok.location)
             << "item_stack_ is not an object" << tok.spelling;
         return -9;
       }
 
-      item_stack_.back()->AsGroup()->Append(item);
+      item_stack_.back()->as_group()->append(item);
       return 0;
     }
 
@@ -279,7 +279,7 @@ int ItemParser::Consume(const Token& tok, Error* error) {
     }
 
     default:
-      FmtError(error, Error::INTERNAL_ERROR, tok.location)
+      fmt_error(error, Error::INTERNAL_ERROR, tok.location)
           << "Unhandled parse event";
       return -10;
   }

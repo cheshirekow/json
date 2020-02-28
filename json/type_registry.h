@@ -360,7 +360,7 @@ template <class T>
 int Registry::parse_list(LexerParser* event_stream, T* begin, T* end) const {
   Event event{};
   Error error{};
-  if (event_stream->GetNextEvent(&event, &error)) {
+  if (event_stream->get_next_event(&event, &error)) {
     LOG(WARNING) << fmt::format("In {}, Failed to get JSON list start event",
                                 __PRETTY_FUNCTION__);
     return error.code;
@@ -369,9 +369,9 @@ int Registry::parse_list(LexerParser* event_stream, T* begin, T* end) const {
     LOG(WARNING) << fmt::format(
         "In {}, expected JSON list of {}, but instead got {} at {}:{}",
         __PRETTY_FUNCTION__, type_string<T>(),
-        json::Event::ToString(event.typeno), event.token.location.lineno,
+        json::Event::to_string(event.typeno), event.token.location.lineno,
         event.token.location.colno);
-    SinkValue(event, event_stream);
+    sink_value(event, event_stream);
     return 1;
   }
 
@@ -382,7 +382,7 @@ int Registry::parse_list(LexerParser* event_stream, T* begin, T* end) const {
       return 0;
     }
   }
-  if (event_stream->GetNextEvent(&event, &error)) {
+  if (event_stream->get_next_event(&event, &error)) {
     LOG(WARNING) << fmt::format(
         "In {}, Failed to get JSON list item or end event",
         __PRETTY_FUNCTION__);
@@ -395,8 +395,8 @@ int Registry::parse_list(LexerParser* event_stream, T* begin, T* end) const {
   // NOTE(josh): this is also bad, because we can't distinguish between
   // errors and list-termination.
   while (event.typeno != Event::LIST_END) {
-    SinkValue(event, event_stream);
-    if (event_stream->GetNextEvent(&event, &error)) {
+    sink_value(event, event_stream);
+    if (event_stream->get_next_event(&event, &error)) {
       LOG(WARNING) << fmt::format(
           "In {}, Failed to get JSON list item or end event",
           __PRETTY_FUNCTION__);
@@ -410,7 +410,7 @@ template <typename T>
 int Registry::parse_object(LexerParser* event_stream, T* out) const {
   json::Event event;
   json::Error error;
-  if (event_stream->GetNextEvent(&event, &error)) {
+  if (event_stream->get_next_event(&event, &error)) {
     LOG(WARNING) << fmt::format("In {}, Failed to get JSON object start event",
                                 __PRETTY_FUNCTION__);
     return error.code;
@@ -423,9 +423,9 @@ int Registry::parse_object(LexerParser* event_stream, T* out) const {
       // we don't warn or try to sink anything because this is not an error
       LOG(WARNING) << fmt::format(
           "Expected JSON object for {}, but instead got {} at {}:{}",
-          type_string<T>(), json::Event::ToString(event.typeno),
+          type_string<T>(), json::Event::to_string(event.typeno),
           event.token.location.lineno, event.token.location.colno);
-      SinkValue(event, event_stream);
+      sink_value(event, event_stream);
     }
     return 1;
   }
@@ -435,7 +435,7 @@ int Registry::parse_object(LexerParser* event_stream, T* out) const {
   if (iter == parsers_.end()) {
     LOG(WARNING) << "No parser registered for type '" << type_string<T>()
                  << "', skipping the parse. Program will probably crash later!";
-    SinkValue(event, event_stream);
+    sink_value(event, event_stream);
   }
   typedef int (*ParseFieldFn)(const Registry&, const re2::StringPiece&,
                               LexerParser*, T*);
@@ -443,7 +443,7 @@ int Registry::parse_object(LexerParser* event_stream, T* out) const {
   ParseFieldFn parse_field =
       reinterpret_cast<ParseFieldFn>(iter->second.parse_fun);
 
-  while (event_stream->GetNextEvent(&event, &error) == 0) {
+  while (event_stream->get_next_event(&event, &error) == 0) {
     if (event.typeno == json::Event::OBJECT_END) {
       return 0;
     }
@@ -451,7 +451,7 @@ int Registry::parse_object(LexerParser* event_stream, T* out) const {
     if (event.typeno != json::Event::OBJECT_KEY) {
       LOG(WARNING) << fmt::format(
           "{}:{} Unexpected {} event at {}:{}", __PRETTY_FUNCTION__, __LINE__,
-          json::Event::ToString(event.typeno), event.token.location.lineno,
+          json::Event::to_string(event.typeno), event.token.location.lineno,
           event.token.location.colno);
       return 1;
     }
@@ -465,7 +465,7 @@ int Registry::parse_object(LexerParser* event_stream, T* out) const {
 
     if (parse_field(*this, keyvalue, event_stream, out)) {
       LOG(WARNING) << fmt::format(
-          "Unrecognized key {}({}) at {}:{}", keyvalue, RuntimeHash(keyvalue),
+          "Unrecognized key {}({}) at {}:{}", keyvalue, runtime_hash(keyvalue),
           keytoken.location.lineno, keytoken.location.colno);
     }
   }
@@ -477,7 +477,7 @@ template <typename T>
 int Registry::parse_scalar(LexerParser* event_stream, T* out) const {
   json::Event event;
   json::Error error;
-  if (event_stream->GetNextEvent(&event, &error)) {
+  if (event_stream->get_next_event(&event, &error)) {
     LOG(WARNING) << fmt::format("In {}, Failed to get JSON scalar event",
                                 __PRETTY_FUNCTION__);
     return error.code;
@@ -490,9 +490,9 @@ int Registry::parse_scalar(LexerParser* event_stream, T* out) const {
       // we don't warn or try to sink anything because this is not an error
       LOG(WARNING) << fmt::format(
           "Expected JSON scalar of type {}, but instead got {} at {}:{}",
-          type_string<T>(), json::Event::ToString(event.typeno),
+          type_string<T>(), json::Event::to_string(event.typeno),
           event.token.location.lineno, event.token.location.colno);
-      SinkValue(event, event_stream);
+      sink_value(event, event_stream);
     }
     return 1;
   }
@@ -517,7 +517,7 @@ int Registry::parse_value(LexerParser* stream, T* out) const {
   if (iter == parsers_.end()) {
     LOG(WARNING) << "No parser registered for type '" << type_string<T>()
                  << "', skipping the parse. Program will probably crash later!";
-    SinkValue(stream);
+    sink_value(stream);
   }
   if (iter->second.parse_as == SCALAR) {
     return this->parse_scalar(stream, out);
@@ -675,11 +675,11 @@ int parse(const re2::StringPiece& content, T* out, const Registry* registry) {
   }
   LexerParser event_stream{};
   Error error{};
-  if (event_stream.Init(&error)) {
+  if (event_stream.init(&error)) {
     LOG(WARNING) << error.msg;
     return error.code;
   }
-  if (event_stream.Begin(content)) {
+  if (event_stream.begin(content)) {
     LOG(WARNING) << error.msg;
     return error.code;
   }

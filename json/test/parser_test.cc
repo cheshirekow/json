@@ -40,7 +40,7 @@ TEST(ParserTest, TestKnownParsings) {
       "{\"foo\":{\"bar\":1,\"baz\":[\"a\",1,12.3,true,false,null]}}";
 
   int nevents =
-      Parse(test_string, &g_event_store_[0], g_event_store_.size(), &error);
+      parse(test_string, &g_event_store_[0], g_event_store_.size(), &error);
   ASSERT_EQ(16, nevents);
   ASSERT_EQ(Event::OBJECT_BEGIN, g_event_store_[0].typeno);
   ASSERT_EQ(Event::OBJECT_KEY, g_event_store_[1].typeno);
@@ -66,14 +66,14 @@ TEST(ItemParserTest, TestKnownParsings) {
       "{\"foo\":{\"bar\":1,\"baz\":[\"a\",1,12.3,true,false,null]}}";
 
   int ntokens =
-      Lex(test_string, &g_token_store_[0], g_token_store_.size(), &err);
+      lex(test_string, &g_token_store_[0], g_token_store_.size(), &err);
   ASSERT_LT(0, ntokens);
   ASSERT_LT(ntokens, g_token_store_.size());
 
   Error parse_error{};
   item::ItemParser parser(g_item_store_.begin(), g_item_store_.end());
   for (size_t idx = 0; idx < static_cast<size_t>(ntokens); ++idx) {
-    ASSERT_EQ(0, parser.Consume(g_token_store_[idx], &parse_error))
+    ASSERT_EQ(0, parser.consume(g_token_store_[idx], &parse_error))
         << "Error(" << parse_error.code << "): " << parse_error.msg
         << " for token " << idx;
   }
@@ -81,7 +81,7 @@ TEST(ItemParserTest, TestKnownParsings) {
   item::Item* object = &g_item_store_[0];
   ASSERT_EQ(item::Item::JSON_OBJECT, object->typeno);
 
-  item::Item* child = object->AsGroup()->head_;
+  item::Item* child = object->as_group()->head_;
   ASSERT_NE(nullptr, child);
   ASSERT_EQ(item::Item::JSON_KEY, child->typeno);
   ASSERT_EQ(std::string("foo"), child->store.string);
@@ -92,7 +92,7 @@ TEST(ItemParserTest, TestKnownParsings) {
   ASSERT_EQ(item::Item::JSON_OBJECT, child->typeno);
 
   object = child;
-  child = object->AsGroup()->head_;
+  child = object->as_group()->head_;
   ASSERT_NE(nullptr, child);
   ASSERT_EQ(item::Item::JSON_KEY, child->typeno);
 
@@ -109,7 +109,7 @@ TEST(ItemParserTest, TestKnownParsings) {
   ASSERT_EQ(item::Item::JSON_LIST, child->typeno);
   ASSERT_EQ(nullptr, child->next);
 
-  child = child->AsGroup()->head_;
+  child = child->as_group()->head_;
   ASSERT_NE(nullptr, child);
   ASSERT_EQ(item::Item::JSON_STRING, child->typeno);
 

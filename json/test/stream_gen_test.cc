@@ -196,23 +196,23 @@ class TestDumper : public json::stream::Dumper {
   void dump_primitive(uint8_t value) override {}
   void dump_primitive(uint16_t value) override {}
   void dump_primitive(uint32_t value) override {
-    value_map_[GetActiveKey()] = value;
+    value_map_[get_active_key()] = value;
     key_path_.pop_back();
   }
   void dump_primitive(uint64_t value) override {}
   void dump_primitive(int8_t value) override {}
   void dump_primitive(int16_t value) override {}
   void dump_primitive(int32_t value) override {
-    value_map_[GetActiveKey()] = value;
+    value_map_[get_active_key()] = value;
     key_path_.pop_back();
   }
   void dump_primitive(int64_t value) override {}
   void dump_primtiive(float value) override {
-    value_map_[GetActiveKey()] = value;
+    value_map_[get_active_key()] = value;
     key_path_.pop_back();
   }
   void dump_primitive(double value) override {
-    value_map_[GetActiveKey()] = value;
+    value_map_[get_active_key()] = value;
     key_path_.pop_back();
   }
   void dump_primitive(bool value) override {}
@@ -236,7 +236,7 @@ class TestDumper : public json::stream::Dumper {
   std::map<std::string, int64_t> value_map_;
 
  private:
-  std::string GetActiveKey() {
+  std::string get_active_key() {
     std::stringstream strm;
     auto iter = key_path_.begin();
     if (iter != key_path_.end()) {

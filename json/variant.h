@@ -93,28 +93,28 @@ struct Variant {
   operator bool();
   operator NullType();
 
-  void Assign(const Variant& other);
-  void Assign(const List& value);
-  void Assign(const Object& value);
-  void Assign(const String& value);
-  void Assign(int64_t value);
-  void Assign(double value);
-  void Assign(bool value);
-  void Assign(NullType value);
-  void Clear();
+  void assign(const Variant& other);
+  void assign(const List& value);
+  void assign(const Object& value);
+  void assign(const String& value);
+  void assign(int64_t value);
+  void assign(double value);
+  void assign(bool value);
+  void assign(NullType value);
+  void clear();
 
-  const Variant& Get(const char* key) const;
-  Variant& Get(const char* key);
-  const Variant& Get(const std::string& key) const;
-  Variant& Get(const std::string& key);
-  const Variant& At(size_t idx) const;
-  Variant& At(size_t idx);
+  const Variant& get(const char* key) const;
+  Variant& get(const char* key);
+  const Variant& get(const std::string& key) const;
+  Variant& get(const std::string& key);
+  const Variant& at(size_t idx) const;
+  Variant& at(size_t idx);
 
-  size_t Serialize(char* begin, char* end,
+  size_t serialize(char* begin, char* end,
                    const SerializeOpts& opts = kDefaultOpts) const;
 
  private:
-  void Serialize(std::ostream* write, const SerializeOpts& opts,
+  void serialize(std::ostream* write, const SerializeOpts& opts,
                  size_t depth) const;
 };
 

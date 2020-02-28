@@ -13,17 +13,17 @@ struct ProgramOpts {
   } markup;
 };
 
-int LexFile(const ProgramOpts& opts, const std::string& content) {
+int lex_file(const ProgramOpts& opts, const std::string& content) {
   json::Error error{};
   json::Scanner scanner;
-  scanner.Init(&error);
-  scanner.Begin(content);
+  scanner.init(&error);
+  scanner.begin(content);
   json::Token token;
 
   uint32_t idx = 0;
-  while (scanner.Pump(&token, &error) == 0) {
+  while (scanner.pump(&token, &error) == 0) {
     printf("%3d: [%14s](%d:%d) '%.*s'\n", idx++,
-           json::Token::ToString(token.typeno), token.location.lineno,
+           json::Token::to_string(token.typeno), token.location.lineno,
            token.location.colno, static_cast<int>(token.spelling.size()),
            token.spelling.begin());
   }
@@ -35,15 +35,15 @@ int LexFile(const ProgramOpts& opts, const std::string& content) {
   }
 }
 
-int ParseFile(const ProgramOpts& opts, const std::string& content) {
+int parse_file(const ProgramOpts& opts, const std::string& content) {
   json::Error error{};
   json::LexerParser parser;
-  parser.Init(&error);
-  parser.Begin(content);
+  parser.init(&error);
+  parser.begin(content);
   json::Event event;
   uint32_t idx = 0;
-  while (parser.GetNextEvent(&event, &error) == 0) {
-    printf("%3d: [%13s] '%.*s'\n", idx++, json::Event::ToString(event.typeno),
+  while (parser.get_next_event(&event, &error) == 0) {
+    printf("%3d: [%13s] '%.*s'\n", idx++, json::Event::to_string(event.typeno),
            static_cast<int>(event.token.spelling.size()),
            event.token.spelling.begin());
   }
@@ -55,9 +55,9 @@ int ParseFile(const ProgramOpts& opts, const std::string& content) {
   }
 }
 
-int VerifyFile(const ProgramOpts& opts, const std::string& content) {
+int verify_file(const ProgramOpts& opts, const std::string& content) {
   json::Error error{};
-  int result = json::Verify(content, &error);
+  int result = json::verify(content, &error);
   if (result != 0) {
     fprintf(stderr, "%s", error.msg);
   }
@@ -102,21 +102,21 @@ const char* kMarkupTail =
     "</body>\n"
     "</html>\n";
 
-int MarkupFile(const ProgramOpts& opts, const std::string& content) {
+int markup_file(const ProgramOpts& opts, const std::string& content) {
   json::Error error{};
   json::Scanner scanner;
   json::Parser parser;
   json::Token token;
   json::Event event;
 
-  scanner.Init(&error);
-  scanner.Begin(content);
+  scanner.init(&error);
+  scanner.begin(content);
 
   if (!opts.markup.omit_template) {
     printf("%s", kMarkupHead);
   }
-  while (scanner.Pump(&token, &error) == 0) {
-    int err = parser.HandleToken(token, &event, &error);
+  while (scanner.pump(&token, &error) == 0) {
+    int err = parser.handle_token(token, &event, &error);
     if (err < 0) {
       break;
     }
@@ -127,13 +127,13 @@ int MarkupFile(const ProgramOpts& opts, const std::string& content) {
         case json::Event::OBJECT_KEY:
         case json::Event::LIST_BEGIN:
         case json::Event::VALUE_LITERAL:
-          printf("<span class=\"%s\">", json::Event::ToString(event.typeno));
+          printf("<span class=\"%s\">", json::Event::to_string(event.typeno));
         default:
           break;
       }
 
       printf("<span class=\"%s\">%.*s</span>",
-             json::Token::ToString(token.typeno),
+             json::Token::to_string(token.typeno),
              static_cast<int>(token.spelling.size()), token.spelling.begin());
 
       switch (event.typeno) {
@@ -147,7 +147,7 @@ int MarkupFile(const ProgramOpts& opts, const std::string& content) {
       }
     } else {
       printf("<span class=\"%s\">%.*s</span>",
-             json::Token::ToString(token.typeno),
+             json::Token::to_string(token.typeno),
              static_cast<int>(token.spelling.size()), token.spelling.begin());
     }
   }
@@ -191,26 +191,25 @@ int main(int argc, char** argv) {
 
   for (auto& subparser :
        {lex_parser, parse_parser, markup_parser, verify_parser}) {
-    argue::KWargs<std::string> kwargs{.action = "store",
-                                      .nargs = "?",
-                                      .const_ = {},
-                                      .default_ = "-",
-                                      .choices = {},
-                                      .dest = {},
-                                      .required = false,
-                                      .help = "Path to input, '-' for stdin",
-                                      .metavar = "infile"};
+    argue::KWargs<std::string> kwargs{
+        //
+        .action = "store",  .nargs = "?",
+        .const_ = {},       .default_ = "-",
+        .choices = {},      .dest = {},
+        .required = false,  .help = "Path to input, '-' for stdin",
+        .metavar = "infile"};
 
-    subparser->AddArgument("infile", &opts.infile,
-                           {.action = "store",
-                            .nargs = "?",
-                            .const_ = {},
-                            .default_ = "-",
-                            .choices = {},
-                            .dest = {},
-                            .required = false,
-                            .help = "Path to input, '-' for stdin",
-                            .metavar = "infile"});
+    subparser->AddArgument(  //
+        "infile", &opts.infile,
+        {.action = "store",
+         .nargs = "?",
+         .const_ = {},
+         .default_ = "-",
+         .choices = {},
+         .dest = {},
+         .required = false,
+         .help = "Path to input, '-' for stdin",
+         .metavar = "infile"});
   }
 
   argue::KWargs<bool> argopts{};
@@ -244,13 +243,13 @@ int main(int argc, char** argv) {
                  std::istreambuf_iterator<char>());
 
   if (opts.command == "lex") {
-    exit(LexFile(opts, content));
+    exit(lex_file(opts, content));
   } else if (opts.command == "parse") {
-    exit(ParseFile(opts, content));
+    exit(parse_file(opts, content));
   } else if (opts.command == "verify") {
-    exit(VerifyFile(opts, content));
+    exit(verify_file(opts, content));
   } else if (opts.command == "markup") {
-    exit(MarkupFile(opts, content));
+    exit(markup_file(opts, content));
   } else {
     printf("Unknown command\n");
   }

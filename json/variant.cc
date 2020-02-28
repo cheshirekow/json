@@ -27,98 +27,98 @@ Variant::Variant(TypeNo typeno) : typeno(typeno) {
 }
 
 Variant::Variant(const Variant& other) : typeno(INVALID) {
-  Assign(other);
+  assign(other);
 }
 
 Variant::Variant(const List& value) : typeno(INVALID) {
-  Assign(value);
+  assign(value);
 }
 
 Variant::Variant(const Object& other) : typeno(INVALID) {
-  Assign(other);
+  assign(other);
 }
 
 Variant::Variant(const String& value) : typeno(INVALID) {
-  Assign(value);
+  assign(value);
 }
 
 Variant::Variant(int64_t value) : typeno(INVALID) {
-  Assign(value);
+  assign(value);
 }
 
 Variant::Variant(double value) : typeno(INVALID) {
-  Assign(value);
+  assign(value);
 }
 
 Variant::Variant(bool value) : typeno(INVALID) {
-  Assign(value);
+  assign(value);
 }
 
 Variant::Variant(NullType value) : typeno(INVALID) {
-  Assign(value);
+  assign(value);
 }
 
 Variant::~Variant() {
-  Clear();
+  clear();
 }
 
 Variant& Variant::operator=(const Variant& other) {
-  Assign(other);
+  assign(other);
   return *this;
 }
 Variant& Variant::operator=(const List& other) {
-  Assign(other);
+  assign(other);
   return *this;
 }
 Variant& Variant::operator=(const Object& other) {
-  Assign(other);
+  assign(other);
   return *this;
 }
 Variant& Variant::operator=(const String& value) {
-  Assign(value);
+  assign(value);
   return *this;
 }
 Variant& Variant::operator=(const int64_t value) {
-  Assign(value);
+  assign(value);
   return *this;
 }
 Variant& Variant::operator=(const double value) {
-  Assign(value);
+  assign(value);
   return *this;
 }
 Variant& Variant::operator=(const bool value) {
-  Assign(value);
+  assign(value);
   return *this;
 }
 Variant& Variant::operator=(const NullType value) {
-  Assign(value);
+  assign(value);
   return *this;
 }
 
 static Variant kInvalid;
 
 const Variant& Variant::operator[](const std::string& key) const {
-  return this->Get(key);
+  return this->get(key);
 }
 
 Variant& Variant::operator[](const std::string& key) {
-  return this->Get(key);
+  return this->get(key);
 }
 
 const Variant& Variant::operator[](const char* key) const {
-  return this->Get(key);
+  return this->get(key);
 }
 
 Variant& Variant::operator[](const char* key) {
-  return this->Get(key);
+  return this->get(key);
 }
 
 Variant& Variant::operator[](size_t idx) {
-  return this->At(idx);
+  return this->at(idx);
 }
 
 const Variant& Variant::operator[](size_t idx) const {
-  return this->At(idx);
+  return this->at(idx);
 }
 
 Variant::operator List() {
@@ -156,8 +156,8 @@ Variant::operator NullType() {
   return Null;
 }
 
-void Variant::Assign(const Variant& other) {
-  Clear();
+void Variant::assign(const Variant& other) {
+  clear();
   typeno = other.typeno;
   switch (other.typeno) {
     case OBJECT:
@@ -174,48 +174,48 @@ void Variant::Assign(const Variant& other) {
   }
 }
 
-void Variant::Assign(const List& value) {
-  Clear();
+void Variant::assign(const List& value) {
+  clear();
   typeno = LIST;
   new (&store.list) List(value);
 }
 
-void Variant::Assign(const Object& value) {
-  Clear();
+void Variant::assign(const Object& value) {
+  clear();
   typeno = OBJECT;
   new (&store.object) Object(value);
 }
 
-void Variant::Assign(const String& value) {
-  Clear();
+void Variant::assign(const String& value) {
+  clear();
   typeno = STRING;
   new (&store.string) String(value);
 }
 
-void Variant::Assign(int64_t value) {
-  Clear();
+void Variant::assign(int64_t value) {
+  clear();
   typeno = INTEGER;
   store.integer = value;
 }
 
-void Variant::Assign(double value) {
-  Clear();
+void Variant::assign(double value) {
+  clear();
   typeno = REALNO;
   store.realno = value;
 }
 
-void Variant::Assign(bool value) {
-  Clear();
+void Variant::assign(bool value) {
+  clear();
   typeno = BOOLEAN;
   store.boolean = value;
 }
 
-void Variant::Assign(NullType value) {
-  Clear();
+void Variant::assign(NullType value) {
+  clear();
   typeno = JNULL;
 }
 
-void Variant::Clear() {
+void Variant::clear() {
   switch (typeno) {
     case LIST:
       store.list.~List();
@@ -232,15 +232,15 @@ void Variant::Clear() {
   typeno = INVALID;
 }
 
-const Variant& Variant::Get(const std::string& key) const {
-  return this->Get(key.c_str());
+const Variant& Variant::get(const std::string& key) const {
+  return this->get(key.c_str());
 }
 
-Variant& Variant::Get(const std::string& key) {
-  return this->Get(key.c_str());
+Variant& Variant::get(const std::string& key) {
+  return this->get(key.c_str());
 }
 
-const Variant& Variant::Get(const char* key) const {
+const Variant& Variant::get(const char* key) const {
   assert(typeno == OBJECT);
   if (typeno != OBJECT) {
     return kInvalid;
@@ -253,7 +253,7 @@ const Variant& Variant::Get(const char* key) const {
   return iter->second;
 }
 
-Variant& Variant::Get(const char* key) {
+Variant& Variant::get(const char* key) {
   assert(typeno == OBJECT);
   if (typeno != OBJECT) {
     // TODO(josh): dont' return modifiable invalid
@@ -262,7 +262,7 @@ Variant& Variant::Get(const char* key) {
   return store.object[key];
 }
 
-Variant& Variant::At(size_t idx) {
+Variant& Variant::at(size_t idx) {
   assert(typeno == LIST);
   if (typeno != LIST) {
     // TODO(josh): dont' return modifiable invalid
@@ -274,7 +274,7 @@ Variant& Variant::At(size_t idx) {
   return store.list[idx];
 }
 
-const Variant& Variant::At(size_t idx) const {
+const Variant& Variant::at(size_t idx) const {
   assert(typeno == LIST);
   if (typeno != LIST) {
     return kInvalid;
@@ -285,20 +285,20 @@ const Variant& Variant::At(size_t idx) const {
   return store.list[idx];
 }
 
-size_t Variant::Serialize(char* begin, char* end,
+size_t Variant::serialize(char* begin, char* end,
                           const SerializeOpts& opts) const {
   util::FixedBufStream<char> printer{begin, end};
-  this->Serialize(&printer, opts, 0);
+  this->serialize(&printer, opts, 0);
   return printer.size();
 }
 
-void FmtIndent(std::ostream* out, size_t indent, size_t depth) {
+void fmt_indent(std::ostream* out, size_t indent, size_t depth) {
   for (size_t idx = 0; idx < indent * depth; idx++) {
     (*out) << ' ';
   }
 }
 
-void Variant::Serialize(std::ostream* out, const SerializeOpts& opts,
+void Variant::serialize(std::ostream* out, const SerializeOpts& opts,
                         size_t depth) const {
   switch (typeno) {
     case LIST: {
@@ -308,8 +308,8 @@ void Variant::Serialize(std::ostream* out, const SerializeOpts& opts,
         (*out) << "[";
         auto iter = store.list.begin();
         while (iter != store.list.end()) {
-          FmtIndent(out, opts.indent, depth + 1);
-          iter->Serialize(out, opts, depth + 1);
+          fmt_indent(out, opts.indent, depth + 1);
+          iter->serialize(out, opts, depth + 1);
           ++iter;
           if (iter != store.list.end()) {
             (*out) << opts.separators[1];
@@ -332,9 +332,9 @@ void Variant::Serialize(std::ostream* out, const SerializeOpts& opts,
         }
         auto iter = store.object.begin();
         while (iter != store.object.end()) {
-          FmtIndent(out, opts.indent, depth + 1);
+          fmt_indent(out, opts.indent, depth + 1);
           (*out) << '"' << iter->first.c_str() << '"' << opts.separators[0];
-          iter->second.Serialize(out, opts, depth + 1);
+          iter->second.serialize(out, opts, depth + 1);
           ++iter;
           if (iter != store.object.end()) {
             (*out) << opts.separators[1];
@@ -343,7 +343,7 @@ void Variant::Serialize(std::ostream* out, const SerializeOpts& opts,
             (*out) << "\n";
           }
         }
-        FmtIndent(out, opts.indent, depth);
+        fmt_indent(out, opts.indent, depth);
         (*out) << "}";
       }
       break;

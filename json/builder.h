@@ -9,30 +9,30 @@ namespace builder {
 struct ListBuilder;
 
 struct ObjectBuilder {
-  void Consume(const char* key, const char* value);
-  void Consume(const char* key, const int value);
-  void Consume(const char* key, const double value);
-  void Consume(const char* key, const bool value);
-  void Consume(const char* key, const std::nullptr_t);
-  void Consume(const char* key, const ObjectBuilder& other);
-  void Consume(const char* key, const ListBuilder& other);
+  void consume(const char* key, const char* value);
+  void consume(const char* key, const int value);
+  void consume(const char* key, const double value);
+  void consume(const char* key, const bool value);
+  void consume(const char* key, const std::nullptr_t);
+  void consume(const char* key, const ObjectBuilder& other);
+  void consume(const char* key, const ListBuilder& other);
 
   // TODO(josh): try to init with a Pair<T,U> and see if that works, would
   // make things a little more legible when writing them out.
   template <typename Head_>
-  void InitWith(const char* key, const Head_& head) {
-    Consume(key, head);
+  void init_with(const char* key, const Head_& head) {
+    consume(key, head);
   }
 
   template <typename Head_, typename... Tail_>
-  void InitWith(const char* key, const Head_& head, Tail_... tail) {
-    Consume(key, head);
-    InitWith(tail...);
+  void init_with(const char* key, const Head_& head, Tail_... tail) {
+    consume(key, head);
+    init_with(tail...);
   }
 
   template <typename... Tail_>
   ObjectBuilder(const char* key, Tail_... tail) : var_(variant::OBJECT) {
-    InitWith(key, tail...);
+    init_with(key, tail...);
   }
 
   ObjectBuilder() : var_(variant::OBJECT) {}
@@ -43,23 +43,23 @@ struct ObjectBuilder {
 };
 
 struct ListBuilder {
-  void Consume(const char* value);
-  void Consume(const int value);
-  void Consume(const double value);
-  void Consume(const bool value);
-  void Consume(const std::nullptr_t);
-  void Consume(const ObjectBuilder& other);
-  void Consume(const ListBuilder& other);
+  void consume(const char* value);
+  void consume(const int value);
+  void consume(const double value);
+  void consume(const bool value);
+  void consume(const std::nullptr_t);
+  void consume(const ObjectBuilder& other);
+  void consume(const ListBuilder& other);
 
   template <typename Head_>
-  void InitWith(const Head_& head) {
-    Consume(head);
+  void init_with(const Head_& head) {
+    consume(head);
   }
 
   template <typename Head_, typename... Tail_>
-  void InitWith(const Head_& head, Tail_... tail) {
-    Consume(head);
-    InitWith(tail...);
+  void init_with(const Head_& head, Tail_... tail) {
+    consume(head);
+    init_with(tail...);
   }
 
   template <typename Head_>
@@ -69,7 +69,7 @@ struct ListBuilder {
   template <typename... Tail_>
   ListBuilder(const Tail_&... tail)  // NOLINT(runtime/explicit)
       : var_(variant::LIST) {
-    InitWith(tail...);
+    init_with(tail...);
   }
 
   ListBuilder() : var_(variant::LIST) {}
@@ -86,7 +86,7 @@ typedef builder::ObjectBuilder O;
 typedef builder::ListBuilder L;
 }  // namespace insource
 
-Variant Build(const builder::ObjectBuilder& o);
-Variant Build(const builder::ListBuilder& o);
+Variant build(const builder::ObjectBuilder& o);
+Variant build(const builder::ListBuilder& o);
 
 }  // namespace json

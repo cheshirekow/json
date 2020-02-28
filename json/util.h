@@ -35,15 +35,15 @@ class Tag {
 
   // Donald Knuth's hash function
   // TODO(josh): validate or replace this hash function
-  constexpr uint64_t Hash(int i, uint64_t hash) const {
+  constexpr uint64_t hash(int i, uint64_t hashv) const {
     return static_cast<size_t>(i) == size()
-               ? hash
-               : Hash(i + 1, ((hash << 5) ^ (hash >> 27)) ^ ptr_[i]);
+               ? hashv
+               : hash(i + 1, ((hashv << 5) ^ (hashv >> 27)) ^ ptr_[i]);
   }
 
   // return a hash of the string
-  constexpr uint64_t Hash() const {
-    return Hash(0, size());
+  constexpr uint64_t hash() const {
+    return hash(0, size());
   }
 
  private:
@@ -53,14 +53,14 @@ class Tag {
 
 // Return an unsigned 64bit hash of @p string
 template <uint32_t N>
-inline constexpr uint64_t Hash(const char (&str)[N]) {
-  return Tag(str).Hash();
+inline constexpr uint64_t hash(const char (&str)[N]) {
+  return Tag(str).hash();
 }
 
 // Donald Knuth's hash function
 // TODO(josh): validate or replace this hash function
 // NOTE(josh): this is the same as above, but iterative instead of stack-based
-inline uint64_t RuntimeHash(const re2::StringPiece& str) {
+inline uint64_t runtime_hash(const re2::StringPiece& str) {
   uint64_t hash = str.size();
   for (size_t idx = 0; idx < str.size(); ++idx) {
     hash = ((hash << 5) ^ (hash >> 27)) ^ str[idx];

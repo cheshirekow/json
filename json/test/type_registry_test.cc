@@ -16,22 +16,22 @@ int parsefield_TestA(const stream::Registry& registry,
                      const re2::StringPiece& key, LexerParser* stream,
                      TestA* out) {
   // TODO(josh): we should return the result of parse_value right?
-  uint64_t keyid = RuntimeHash(key);
+  uint64_t keyid = runtime_hash(key);
   switch (keyid) {
-    case Hash("field_a"):
+    case hash("field_a"):
       registry.parse_value(stream, &out->field_a);
       break;
-    case Hash("field_b"):
+    case hash("field_b"):
       registry.parse_value(stream, &out->field_b);
       break;
-    case Hash("field_c"):
+    case hash("field_c"):
       registry.parse_value(stream, &out->field_c);
       break;
-    case Hash("field_d"):
+    case hash("field_d"):
       registry.parse_value(stream, &out->field_d);
       break;
     default:
-      SinkValue(stream);
+      sink_value(stream);
       return 1;
   }
   return 0;
@@ -92,16 +92,16 @@ namespace json {
 int parsefield_TestB(const stream::Registry& registry,
                      const re2::StringPiece& key, LexerParser* stream,
                      TestB* out) {
-  uint64_t keyid = RuntimeHash(key);
+  uint64_t keyid = runtime_hash(key);
   switch (keyid) {
-    case Hash("field_a"):
+    case hash("field_a"):
       registry.parse_value(stream, &out->field_a);
       break;
-    case Hash("field_b"):
+    case hash("field_b"):
       registry.parse_value(stream, &out->field_b);
       break;
     default:
-      SinkValue(stream);
+      sink_value(stream);
       return 1;
   }
   return 0;
