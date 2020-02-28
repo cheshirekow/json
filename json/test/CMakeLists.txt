@@ -73,12 +73,6 @@ add_test(
   COMMAND python frontend_tests.py --exe-path $<TARGET_FILE:json.exe>
   WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR})
 
-add_executable(json-registry-poc registry_poc.cc)
-add_test(
-  NAME json-registry-poc
-  COMMAND json-registry-poc
-  WORKING_DIRECTORY ${CMAKE_SOURCE_DIR})
-
 format_and_lint(
   json-test
   CMakeLists.txt
@@ -86,11 +80,11 @@ format_and_lint(
   lexer_test.cc
   macro_test.cc
   parser_test.cc
-  registry_poc.cc
   stream_gen_test.cc
   stream_gen_test.h
   stream_test.cc
   type_registry_test.cc
   variant_test.cc
   frontend_tests.py
-  test_types.py)
+  test_types.py
+  CCDEPENDS ${CMAKE_CURRENT_BINARY_DIR}/test_types.h)

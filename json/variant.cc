@@ -1,5 +1,6 @@
 // Copyright 2018 Josh Bialkowski <josh.bialkowski@gmail.com>
 #include "json/variant.h"
+#include "util/fixed_string_stream.h"
 
 namespace json {
 namespace variant {
@@ -286,79 +287,85 @@ const Variant& Variant::At(size_t idx) const {
 
 size_t Variant::Serialize(char* begin, char* end,
                           const SerializeOpts& opts) const {
-  BufPrinter printer{begin, end};
+  util::FixedBufStream<char> printer{begin, end};
   this->Serialize(&printer, opts, 0);
-  return printer.Size();
+  return printer.size();
 }
 
-void Variant::Serialize(BufPrinter* out, const SerializeOpts& opts,
+void FmtIndent(std::ostream* out, size_t indent, size_t depth) {
+  for (size_t idx = 0; idx < indent * depth; idx++) {
+    (*out) << ' ';
+  }
+}
+
+void Variant::Serialize(std::ostream* out, const SerializeOpts& opts,
                         size_t depth) const {
   switch (typeno) {
     case LIST: {
       if (store.list.size() < 1) {
-        (*out)("[]");
+        (*out) << "[]";
       } else {
-        (*out)("[");
+        (*out) << "[";
         auto iter = store.list.begin();
         while (iter != store.list.end()) {
           FmtIndent(out, opts.indent, depth + 1);
           iter->Serialize(out, opts, depth + 1);
           ++iter;
           if (iter != store.list.end()) {
-            (*out)("%s", opts.separators[1]);
+            (*out) << opts.separators[1];
           }
           if (opts.indent) {
-            (*out)("\n");
+            (*out) << "\n";
           }
         }
-        (*out)("]");
+        (*out) << "]";
       }
       break;
     }
     case OBJECT: {
       if (store.object.size() < 1) {
-        (*out)("{}");
+        (*out) << "{}";
       } else {
-        (*out)("{");
+        (*out) << "{";
         if (opts.indent) {
-          (*out)("\n");
+          (*out) << "\n";
         }
         auto iter = store.object.begin();
         while (iter != store.object.end()) {
           FmtIndent(out, opts.indent, depth + 1);
-          (*out)("\"%s\"%s", iter->first.c_str(), opts.separators[0]);
+          (*out) << '"' << iter->first.c_str() << '"' << opts.separators[0];
           iter->second.Serialize(out, opts, depth + 1);
           ++iter;
           if (iter != store.object.end()) {
-            (*out)("%s", opts.separators[1]);
+            (*out) << opts.separators[1];
           }
           if (opts.indent) {
-            (*out)("\n");
+            (*out) << "\n";
           }
         }
         FmtIndent(out, opts.indent, depth);
-        (*out)("}");
+        (*out) << "}";
       }
       break;
     }
     case STRING: {
-      (*out)("\"%s\"", store.string.c_str());
+      (*out) << '"' << store.string.c_str() << '"';
       break;
     }
     case REALNO: {
-      (*out)("%f", store.realno);
+      (*out) << store.realno;
       break;
     }
     case INTEGER: {
-      (*out)("%ld", store.integer);
+      (*out) << store.integer;
       break;
     }
     case BOOLEAN: {
-      (*out)("%s", store.boolean ? "true" : "false");
+      (*out) << (store.boolean ? "true" : "false");
       break;
     }
     case JNULL: {
-      (*out)("null");
+      (*out) << "null";
       break;
     }
     default:

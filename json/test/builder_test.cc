@@ -41,7 +41,7 @@ TEST(BuilderTest, InSourceKnownTrees) {
 
   std::string expect1 =
       "{\"hello\": 123,\"world\": {\"foo\": {\"far\": 123,\"fit\": "
-      "null,\"fox\": true,\"fur\": 4270.000000,\"fut\": false,\"fuz\": "
+      "null,\"fox\": true,\"fur\": 4270,\"fut\": false,\"fuz\": "
       "\"hello\"}}}";
   std::string expect2 =
       ""
@@ -52,7 +52,7 @@ TEST(BuilderTest, InSourceKnownTrees) {
       "      \"far\": 123,\n"
       "      \"fit\": null,\n"
       "      \"fox\": true,\n"
-      "      \"fur\": 4270.000000,\n"
+      "      \"fur\": 4270,\n"
       "      \"fut\": false,\n"
       "      \"fuz\": \"hello\"\n"
       "    }\n"
@@ -65,12 +65,12 @@ TEST(BuilderTest, InSourceKnownTrees) {
   size_t size1 = tree.Serialize(
       &buf[0], &buf.back(),
       json::SerializeOpts{.indent = 0, .separators = {": ", ","}});
-  EXPECT_EQ(size1, 116);
+  EXPECT_EQ(size1, 109);
   EXPECT_EQ(expect1, std::string(&buf[0]));
 
   size_t size2 = tree.Serialize(
       &buf[0], &buf.back(),
       json::SerializeOpts{.indent = 2, .separators = {": ", ","}});
-  EXPECT_EQ(size2, 178);
+  EXPECT_EQ(size2, 171);
   EXPECT_EQ(expect2, std::string(&buf[0]));
 }

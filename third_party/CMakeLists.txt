@@ -1,6 +1,6 @@
 # NOTE(josh): don't build gtest if it's not part of this sparse checkout
 if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/googletest)
-  message(Enabling third_party:googletest for this checkout)
+  message("Enabling third_party:googletest for this checkout")
   add_library(gtest STATIC googletest/src/gtest-all.cc)
   add_library(gtest-shared SHARED googletest/src/gtest-all.cc)
   set_target_properties(
@@ -34,7 +34,7 @@ endif()
 
 # NOTE(josh): don't build re2 if it's not part of this sparse checkout
 if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/re2)
-  message(Enabling third_party:re2 for this checkout)
+  message("Enabling third_party:re2 for this checkout")
   set(re2_sources
       re2/util/rune.cc
       re2/util/strutil.cc

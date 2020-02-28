@@ -17,15 +17,15 @@ namespace json {
 // types
 
 template <typename T>
-void ParseInteger(const Token& token, T* value);
+int ParseInteger(const Token& token, T* value);
 
 template <typename T>
-void ParseRealNumber(const Token& token, T* value);
+int ParseRealNumber(const Token& token, T* value);
 
-void ParseBoolean(const Token& token, bool* value);
+int ParseBoolean(const Token& token, bool* value);
 
 template <size_t N>
-void ParseString(const Token& token, char (*str)[N]);
+int ParseString(const Token& token, char (*str)[N]);
 
 // -----------------------------------------------------------------------------
 //    Sink Functions
@@ -34,15 +34,15 @@ void ParseString(const Token& token, char (*str)[N]);
 // actually looking at the data.
 
 // Consume a value, ignoring it's contents
-void SinkValue(const Event& event, LexerParser* stream);
+int SinkValue(const Event& event, LexerParser* stream);
 
-void SinkValue(LexerParser* stream);
+int SinkValue(LexerParser* stream);
 
 // Consume an object, ignoring it's contents
-void SinkObject(LexerParser* stream);
+int SinkObject(LexerParser* stream);
 
 // Consume a list, ignoring it's contents
-void SinkList(LexerParser* stream);
+int SinkList(LexerParser* stream);
 
 }  // namespace json
 
@@ -63,49 +63,57 @@ namespace json {
 // -----------------------------------------------------------------------------
 
 template <typename T>
-void ParseInteger(const Token& token, T* obj) {
+int ParseInteger(const Token& token, T* obj) {
   if (token.typeno != Token::NUMERIC_LITERAL) {
     LOG(WARNING) << fmt::format("Can't parse token of type '{}' as an integer",
                                 token.typeno);
+    return 1;
   }
   if (sizeof(T) == 1) {
+    // RE2 doesn't support parsing into an 8-bit integer. It will try to parse
+    // it as a ASCII char instead of a numeric value.
     int16_t temp;
     if (RE2::FullMatch(token.spelling, "(.+)", &temp)) {
-      *obj = temp;
+      *obj = static_cast<T>(temp);
+      return 0;
     } else {
       LOG(WARNING) << fmt::format("re2 can't parse token '{}' as an integer",
                                   token.spelling.as_string());
     }
   } else {
     if (RE2::FullMatch(token.spelling, "(.+)", obj)) {
-      // OK
+      return 0;
     } else {
       LOG(WARNING) << fmt::format("re2 can't parse token '{}' as an integer",
                                   token.spelling.as_string());
     }
   }
+  return 1;
 }
 
 template <typename T>
-void ParseRealNumber(const Token& token, T* obj) {
+int ParseRealNumber(const Token& token, T* obj) {
   if (token.typeno != Token::NUMERIC_LITERAL) {
     LOG(WARNING) << fmt::format(
         "Can't parse token of type '{}' as a real number", token.typeno);
+    return 1;
   }
   if (RE2::FullMatch(token.spelling, "(.+)", obj)) {
-    // OK
+    return 0;
   } else {
     LOG(WARNING) << fmt::format("re2 can't parse token '{}' as a real number",
                                 token.spelling.as_string());
   }
+  return 1;
 }
 
 template <size_t N>
-void ParseString(const Token& token, char (*buf)[N]) {
+int ParseString(const Token& token, char (*buf)[N]) {
   // NOTE(josh): strip literal quotes from beginning/end of the string.
   re2::StringPiece unquoted =
       token.spelling.substr(1, token.spelling.size() - 2);
   unescape(unquoted, *buf, (*buf) + N);
+  return 0;
 }
 
 }  // namespace json

@@ -114,7 +114,7 @@ struct Variant {
                    const SerializeOpts& opts = kDefaultOpts) const;
 
  private:
-  void Serialize(BufPrinter* write, const SerializeOpts& opts,
+  void Serialize(std::ostream* write, const SerializeOpts& opts,
                  size_t depth) const;
 };
 

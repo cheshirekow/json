@@ -5,6 +5,7 @@ cc_library(
     hdrs=["binary_literal.h",
           "bitset.h",
           "container_of.h",
+          "fixed_string_stream.h",
           "hash_tpl.h",
           "inline_math.h",
           "linked.h",
@@ -21,32 +22,39 @@ cc_library(
           "stack_trace.cc"],
 )
 
-cc_test(name="util-bitset_test",
+cc_test(name="bitset_test",
         deps=[":util",
               "//third_party/googletest:gtest",
               "//third_party/googletest:gtest_main"],
         srcs=["bitset_test.cc"])
 
-cc_test(name="util-linked_test",
+cc_test(name="linked_test",
         deps=[":util",
               "//third_party/fmt:fmt",
               "//third_party/googletest:gtest",
               "//third_party/googletest:gtest_main"],
         srcs=["linked_test.cc"])
 
-cc_test(name="util-redblack_test",
+cc_test(name="redblack_test",
         deps=[":util",
               "//third_party/fmt:fmt",
               "//third_party/googletest:gtest",
               "//third_party/googletest:gtest_main"],
         srcs=["redblack_test.cc"])
 
-cc_test(name="util-type_string_test",
+cc_test(name="type_string_test",
         deps=[":util",
               "//third_party/fmt:fmt",
               "//third_party/googletest:gtest",
               "//third_party/googletest:gtest_main"],
         srcs=["type_string_test.cc"])
+
+cc_test(name="fixed_string_stream_test",
+        deps=[":util",
+              "//third_party/fmt:fmt",
+              "//third_party/googletest:gtest",
+              "//third_party/googletest:gtest_main"],
+        srcs=["fixed_string_stream_test.cc"])
 
 cc_library(
     name="svg_artist",

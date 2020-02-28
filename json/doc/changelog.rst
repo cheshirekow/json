@@ -2,6 +2,19 @@
 Changelog
 =========
 
+v0.2.3
+======
+
+* get rid of WalkOpts
+* remove registry_poc.cc
+* get rid of BufPrinter and FmtError, replace with static stringstream
+* make Registry* const within the dumper
+* parse_array -> parse_list
+* make order of parameters consistent in type_registry.h API
+* parse functions all return integers
+* some cleanup/reorg of type_registry.h/cc
+
+
 v0.2.2
 ======
 

@@ -10,6 +10,8 @@
 
 #include <re2/re2.h>
 
+#include "util/fixed_string_stream.h"
+
 namespace json {
 
 // -----------------------------------------------------------------------------
@@ -100,14 +102,14 @@ int Scanner::Init(Error* error) {
   for (size_t idx = 0; idx < sizeof(kScanList) / sizeof(Spec); ++idx) {
     int err = scanset_.Add(kScanList[idx].pattern, NULL);
     if (err != static_cast<int>(idx)) {
-      FmtError(error, Error::INTERNAL_ERROR)(
-          "Failed to add all scanlist items to `RE2::Set`");
+      FmtError(error, Error::INTERNAL_ERROR)
+          << "Failed to add all scanlist items to `RE2::Set`";
       init_state_ = -1;
       return init_state_;
     }
   }
   if (!scanset_.Compile()) {
-    FmtError(error, Error::INTERNAL_ERROR)("Failed to compile `RE2::Set`");
+    FmtError(error, Error::INTERNAL_ERROR) << "Failed to compile `RE2::Set`";
     init_state_ = -1;
     return init_state_;
   }
@@ -138,9 +140,9 @@ void AdvanceLocation(const re2::StringPiece& str, SourceLocation* loc) {
 
 int Scanner::Pump(Token* tok, Error* error) {
   if (piece_.size() < 1) {
-    FmtError(error, Error::LEX_INPUT_FINISHED, loc_)(
-        "The input stream is empty. Either parsing is finished or the data is "
-        "truncated.");
+    FmtError(error, Error::LEX_INPUT_FINISHED, loc_)
+        << "The input stream is empty. Either parsing is finished or the data "
+           "is truncated.";
     return -1;
   }
 
@@ -163,10 +165,10 @@ int Scanner::Pump(Token* tok, Error* error) {
 
   matches_.resize(0);
   if (!scanset_.Match(piece_, &matches_)) {
-    FmtError(error, Error::LEX_INVALID_TOKEN, loc_)(
-        "An invalid input token was encountered. Source is not valid json. At "
-        "%d:%d",
-        loc_.lineno, loc_.colno);
+    FmtError(error, Error::LEX_INVALID_TOKEN, loc_)
+        << "An invalid input token was encountered. Source is not valid json. "
+        << "At " << loc_.lineno << ":" << loc_.colno;
+
     return -1;
   }
 
@@ -174,8 +176,8 @@ int Scanner::Pump(Token* tok, Error* error) {
 
   int match_idx = *std::min_element(matches_.begin(), matches_.end());
   if (!RE2::Consume(&piece_, kScanList[match_idx].pattern)) {
-    FmtError(error, Error::INTERNAL_ERROR, loc_)(
-        "A valid token was matched but RE2 was unable to consume it");
+    FmtError(error, Error::INTERNAL_ERROR, loc_)
+        << "A valid token was matched but RE2 was unable to consume it";
     return -1;
   }
   auto end = piece_.begin();
@@ -275,8 +277,8 @@ int Parser::HandleToken(const Token& tok, Event* event, Error* error) {
     case PARSING_VALUE: {
       if (tok.typeno == Token::PUNCTUATION) {
         if (tok.spelling != "{" && tok.spelling != "[") {
-          FmtError(error, Error::PARSE_UNEXPECTED_TOKEN,
-                   tok.location)("Expected '{' or '[' but got ")(tok.spelling);
+          FmtError(error, Error::PARSE_UNEXPECTED_TOKEN, tok.location)
+              << "Expected '{' or '[' but got " << tok.spelling;
           return -1;
         }
 
@@ -300,20 +302,20 @@ int Parser::HandleToken(const Token& tok, Event* event, Error* error) {
 
     case PARSING_KEY: {
       if (tok.typeno != Token::STRING_LITERAL) {
-        FmtError(error, Error::PARSE_UNEXPECTED_TOKEN, tok.location)(
-            "Expected a string literal (key) but got ")(tok.spelling);
+        FmtError(error, Error::PARSE_UNEXPECTED_TOKEN, tok.location)
+            << "Expected a string literal (key) but got " << tok.spelling;
         return -1;
       }
 
       if (!group_stack_.size()) {
-        FmtError(error, Error::INTERNAL_ERROR,
-                 tok.location)("group_stack_ is empty")(tok.spelling);
+        FmtError(error, Error::INTERNAL_ERROR, tok.location)
+            << "group_stack_ is empty" << tok.spelling;
         return -1;
       }
 
       if (group_stack_.back() != Event::OBJECT_BEGIN) {
-        FmtError(error, Error::INTERNAL_ERROR,
-                 tok.location)("group_stack_ is not an object")(tok.spelling);
+        FmtError(error, Error::INTERNAL_ERROR, tok.location)
+            << "group_stack_ is not an object" << tok.spelling;
         return -1;
       }
 
@@ -324,8 +326,8 @@ int Parser::HandleToken(const Token& tok, Event* event, Error* error) {
 
     case PARSING_COLON: {
       if (tok.typeno != Token::PUNCTUATION || tok.spelling != ":") {
-        FmtError(error, Error::PARSE_UNEXPECTED_TOKEN,
-                 tok.location)("Expected a colon (':') but got ")(tok.spelling);
+        FmtError(error, Error::PARSE_UNEXPECTED_TOKEN, tok.location)
+            << "Expected a colon (':') but got " << tok.spelling;
         return -1;
       }
       state_ = PARSING_VALUE;
@@ -334,14 +336,14 @@ int Parser::HandleToken(const Token& tok, Event* event, Error* error) {
 
     case PARSING_CLOSURE: {
       if (tok.typeno != Token::PUNCTUATION) {
-        FmtError(error, Error::PARSE_UNEXPECTED_TOKEN, tok.location)(
-            "Expected ']', '}', or ',' but got ")(tok.spelling);
+        FmtError(error, Error::PARSE_UNEXPECTED_TOKEN, tok.location)
+            << "Expected ']', '}', or ',' but got " << tok.spelling;
         return -1;
       }
 
       if (!group_stack_.size()) {
-        FmtError(error, Error::INTERNAL_ERROR,
-                 tok.location)("group_stack_ is empty")(tok.spelling);
+        FmtError(error, Error::INTERNAL_ERROR, tok.location)
+            << "group_stack_ is empty" << tok.spelling;
         return -1;
       }
 
@@ -353,16 +355,16 @@ int Parser::HandleToken(const Token& tok, Event* event, Error* error) {
           state_ = PARSING_KEY;
           return 0;
         } else {
-          FmtError(error, Error::INTERNAL_ERROR, tok.location)(
-              "Top of group stack is not a list or object")(tok.spelling);
+          FmtError(error, Error::INTERNAL_ERROR, tok.location)
+              << "Top of group stack is not a list or object" << tok.spelling;
           return -1;
         }
       }
 
       if (group_stack_.back() == Event::LIST_BEGIN) {
         if (tok.spelling != "]") {
-          FmtError(error, Error::PARSE_UNEXPECTED_TOKEN,
-                   tok.location)("Expected ']' but got ")(tok.spelling);
+          FmtError(error, Error::PARSE_UNEXPECTED_TOKEN, tok.location)
+              << "Expected ']' but got " << tok.spelling;
           return -1;
         }
 
@@ -374,8 +376,8 @@ int Parser::HandleToken(const Token& tok, Event* event, Error* error) {
 
       if (group_stack_.back() == Event::OBJECT_BEGIN) {
         if (tok.spelling != "}") {
-          FmtError(error, Error::PARSE_UNEXPECTED_TOKEN,
-                   tok.location)("Expected '}' but got ")(tok.spelling);
+          FmtError(error, Error::PARSE_UNEXPECTED_TOKEN, tok.location)
+              << "Expected '}' but got " << tok.spelling;
           return -1;
         }
 
@@ -384,20 +386,20 @@ int Parser::HandleToken(const Token& tok, Event* event, Error* error) {
         return 1;
       }
 
-      FmtError(error, Error::PARSE_UNEXPECTED_TOKEN, tok.location)(
-          "Expected ']', '}', or ',' but got ")(tok.spelling);
+      FmtError(error, Error::PARSE_UNEXPECTED_TOKEN, tok.location)
+          << "Expected ']', '}', or ',' but got " << tok.spelling;
       return -1;
     }
 
     case PARSING_ERROR: {
-      FmtError(error, Error::PARSE_BAD_STATE,
-               tok.location)("Parser is in an error state");
+      FmtError(error, Error::PARSE_BAD_STATE, tok.location)
+          << "Parser is in an error state";
       return -1;
     }
 
     default: {
-      FmtError(error, Error::INTERNAL_ERROR, tok.location)(
-          "Unknown parser state: %d", state_)(tok.spelling);
+      FmtError(error, Error::INTERNAL_ERROR, tok.location)
+          << "Unknown parser state: " << state_ << tok.spelling;
       return -1;
     }
   }
@@ -496,107 +498,16 @@ const json::SerializeOpts kCompactOpts = {  //
     .indent = 0,
     .separators = {":", ","}};
 
-// -----------------------------------------------------------------------------
-//    BufPrinter
-// -----------------------------------------------------------------------------
-
-int BufPrinter::operator()(const char* fmt, va_list args) {
-  char* write = nullptr;
-  size_t writelen = 0;
-  if (begin_ + written_ < end_) {
-    write = &begin_[written_];
-    writelen = end_ - write;
+util::FixedBufStream<char> FmtError(Error* error, Error::Code code,
+                                    SourceLocation loc) {
+  if (error) {
+    error->code = code;
+    error->loc = loc;
+    return util::FixedBufStream<char>(&error->msg);
+  } else {
+    return util::FixedBufStream<char>(static_cast<char*>(nullptr),
+                                      static_cast<size_t>(0));
   }
-
-  return vsnprintf(write, writelen, fmt, args);  // NOLINT
-}
-
-int BufPrinter::operator()(const char* fmt, ...) {
-  va_list args;
-  va_start(args, fmt);
-  int result = (*this)(fmt, args);
-  va_end(args);
-
-  if (result >= 0) {
-    written_ += result;
-  }
-
-  return result;
-}
-
-int BufPrinter::operator()(char c) {
-  if (begin_ + written_ + 1 < end_) {
-    begin_[written_] = c;
-    begin_[written_ + 1] = '\0';
-  }
-  written_++;
-  return 1;
-}
-
-int BufPrinter::operator()(const re2::StringPiece& str) {
-  if (begin_ + written_ < end_) {
-    size_t cpysize =
-        std::min<size_t>(end_ - (begin_ + written_ + 1), str.size());
-    memcpy(&begin_[written_], str.begin(), cpysize);
-    begin_[written_ + cpysize] = '\0';
-  }
-  written_ += str.size();
-  return str.size();
-}
-
-size_t BufPrinter::Size() {
-  return written_;
-}
-
-// -----------------------------------------------------------------------------
-//    FmtError
-// -----------------------------------------------------------------------------
-
-FmtError::FmtError(Error* err, Error::Code code, SourceLocation loc)
-    : err_(err), printer_(&(err->msg)) {
-  if (err_) {
-    err_->code = code;
-    err_->loc = loc;
-  }
-}
-
-FmtError& FmtError::operator()(const char* fmt, va_list args) {
-  if (err_) {
-    printer_(fmt, args);
-  }
-  return *this;
-}
-
-FmtError& FmtError::operator()(const char* fmt, ...) {
-  if (err_) {
-    va_list args;
-    va_start(args, fmt);
-    printer_(fmt, args);
-    va_end(args);
-  }
-  return *this;
-}
-
-FmtError& FmtError::operator()(char c) {
-  if (err_) {
-    printer_(c);
-  }
-  return *this;
-}
-
-FmtError& FmtError::operator()(const re2::StringPiece& str) {
-  if (err_) {
-    printer_(str);
-  }
-  return *this;
-}
-
-size_t FmtIndent(BufPrinter* out, size_t indent, size_t depth) {
-  size_t nspace = depth * indent;
-  for (size_t idx = 0; idx < nspace; ++idx) {
-    (*out)(' ');
-  }
-  return nspace;
 }
 
 }  // namespace json

@@ -5,6 +5,7 @@ format_and_lint(util
                 bitset.h
                 bitset_test.cc
                 container_of.h
+                fixed_string_stream.h
                 linked.cc
                 linked.h
                 linked.hpp

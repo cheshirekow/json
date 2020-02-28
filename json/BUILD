@@ -82,9 +82,6 @@ cc_test(name="stream_gen_test",
               "//third_party/googletest:gtest",
               "//third_party/googletest:gtest_main"])
 
-cc_test(name="registry-poc",
-        srcs=["test/registry_poc.cc"])
-
 cc_test(name="type-registry-test",
         srcs=["test/type_registry_test.cc"],
         deps=[":json",

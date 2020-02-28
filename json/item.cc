@@ -153,7 +153,9 @@ int ParseToken(const Token& token, Item* item) {
       return -1;
     }
 
-    default: { return -1; }
+    default: {
+      return -1;
+    }
   }
 }
 
@@ -185,8 +187,8 @@ int ItemParser::Consume(const Token& tok, Error* error) {
     case Event::OBJECT_BEGIN: {
       Item* item = AllocItem(error);
       if (!item) {
-        FmtError(error, Error::PARSE_OOM,
-                 tok.location)("Exceeded available item storage");
+        FmtError(error, Error::PARSE_OOM, tok.location)
+            << "Exceeded available item storage";
         return -2;
       }
 
@@ -202,8 +204,8 @@ int ItemParser::Consume(const Token& tok, Error* error) {
     case Event::LIST_BEGIN: {
       Item* item = AllocItem(error);
       if (!item) {
-        FmtError(error, Error::PARSE_OOM,
-                 tok.location)("Exceeded available item storage");
+        FmtError(error, Error::PARSE_OOM, tok.location)
+            << "Exceeded available item storage";
         return -3;
       }
 
@@ -219,15 +221,16 @@ int ItemParser::Consume(const Token& tok, Error* error) {
     case Event::VALUE_LITERAL: {
       Item* item = AllocItem(error);
       if (!item) {
-        FmtError(error, Error::PARSE_OOM,
-                 tok.location)("Exceeded available item storage");
+        FmtError(error, Error::PARSE_OOM, tok.location)
+            << "Exceeded available item storage";
         return -4;
       }
 
       ParseToken(tok, item);
       if (!item_stack_.size()) {
-        FmtError(error, Error::PARSE_UNEXPECTED_TOKEN, tok.location)(
-            "Expected initial object ({}) or list ([]) but got ")(tok.spelling);
+        FmtError(error, Error::PARSE_UNEXPECTED_TOKEN, tok.location)
+            << "Expected initial object ({}) or list ([]) but got "
+            << tok.spelling;
         return -5;
       }
 
@@ -237,8 +240,8 @@ int ItemParser::Consume(const Token& tok, Error* error) {
 
     case Event::OBJECT_KEY: {
       if (tok.typeno != Token::STRING_LITERAL) {
-        FmtError(error, Error::PARSE_UNEXPECTED_TOKEN, tok.location)(
-            "Expected a string literal (key) but got ")(tok.spelling);
+        FmtError(error, Error::PARSE_UNEXPECTED_TOKEN, tok.location)
+            << "Expected a string literal (key) but got " << tok.spelling;
         return -6;
       }
 
@@ -250,14 +253,14 @@ int ItemParser::Consume(const Token& tok, Error* error) {
       item->AssignKey(tok.spelling);
 
       if (!item_stack_.size()) {
-        FmtError(error, Error::INTERNAL_ERROR,
-                 tok.location)("item_stack_ is empty")(tok.spelling);
+        FmtError(error, Error::INTERNAL_ERROR, tok.location)
+            << "item_stack_ is empty" << tok.spelling;
         return -8;
       }
 
       if (item_stack_.back()->typeno != Item::JSON_OBJECT) {
-        FmtError(error, Error::INTERNAL_ERROR,
-                 tok.location)("item_stack_ is not an object")(tok.spelling);
+        FmtError(error, Error::INTERNAL_ERROR, tok.location)
+            << "item_stack_ is not an object" << tok.spelling;
         return -9;
       }
 
@@ -276,8 +279,8 @@ int ItemParser::Consume(const Token& tok, Error* error) {
     }
 
     default:
-      FmtError(error, Error::INTERNAL_ERROR,
-               tok.location)("Unhandled parse event");
+      FmtError(error, Error::INTERNAL_ERROR, tok.location)
+          << "Unhandled parse event";
       return -10;
   }
 

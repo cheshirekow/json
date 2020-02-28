@@ -8,8 +8,10 @@
 #include <re2/set.h>
 #include <re2/stringpiece.h>
 
+#include "util/fixed_string_stream.h"
+
 #define JSON_VERSION \
-  { 0, 2, 2 }
+  { 0, 2, 3 }
 
 // Tools for parsing and emitting JSON formatted data
 namespace json {
@@ -228,77 +230,6 @@ struct SerializeOpts {
   char separators[2][3];  //< map and list separators, i.e. ":" and ","
 };
 
-enum WalkOrder { WALK_DEPTHFIRST = 0, WALK_BREADTHFIRST = 1 };
-
-// Options for struct walking/introspection
-struct WalkOpts {
-  WalkOrder walk_order;
-};
-
-struct WalkEvent {
-  enum TypeNo {
-    OBJECT_BEGIN,
-    OBJECT_KEY,
-    OBJECT_END,
-    LIST_BEGIN,
-    LIST_END,
-    VALUE,
-    INVALID,
-  };
-
-  TypeNo typeno;
-  static const char* ToString(TypeNo value);
-};
-
-// Manages sequential `printf`s to a single buffer.
-class BufPrinter {
- public:
-  BufPrinter(char* begin, char* end) : begin_(begin), end_(end), written_(0) {}
-  BufPrinter(char* begin, size_t size)
-      : begin_(begin), end_(begin + size), written_(0) {}
-
-  template <size_t N>
-  explicit BufPrinter(char (*buf)[N])
-      : begin_(&(*buf)[0]), end_(&(*buf)[N]), written_(0) {}
-
-  ~BufPrinter() {}
-
-  int operator()(const char* fmt, va_list args);
-  int operator()(const char* fmt, ...);
-  int operator()(char c);
-  int operator()(const re2::StringPiece& str);
-  size_t Size();
-
- private:
-  BufPrinter(const BufPrinter&) = delete;
-  BufPrinter& operator=(const BufPrinter&) = delete;
-
-  char* begin_;
-  char* end_;
-  size_t written_;
-};
-
-// Stack-guard manages sequential `printf`s to the message buffer and no-ops
-// everything if the error pointer is `nullptr`.
-class FmtError {
- public:
-  FmtError(Error* err, Error::Code code, SourceLocation loc = {});
-  FmtError& operator()(const char* fmt, va_list args);
-  FmtError& operator()(const char* fmt, ...);
-  FmtError& operator()(char c);
-  FmtError& operator()(const re2::StringPiece& str);
-
- private:
-  FmtError(const FmtError&) = delete;
-  FmtError& operator=(const FmtError&) = delete;
-
-  Error* err_;
-  BufPrinter printer_;
-};
-
-// Helper function for printing indentations
-size_t FmtIndent(BufPrinter* out, size_t indent, size_t depth);
-
 // Safely access elements from a c-style array
 template <size_t N>
 const char* SafeGet(const char* (&map)[N], size_t idx) {
@@ -314,5 +245,10 @@ extern const SerializeOpts kDefaultOpts;
 
 // Serialization options for a very compact JSON output
 extern const SerializeOpts kCompactOpts;
+
+// Store an error code and source location and return an ostream that
+// can write to the message buffer.
+util::FixedBufStream<char> FmtError(Error* error, Error::Code code,
+                                    SourceLocation loc = {});
 
 }  // namespace json
