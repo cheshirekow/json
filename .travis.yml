@@ -1,0 +1,47 @@
+dist: bionic
+
+language: cpp
+compiler:
+- clang
+- gcc
+
+before_install:
+- echo "deb http://apt.llvm.org/bionic/ llvm-toolchain-bionic-8 main" |
+    sudo tee --append /etc/apt/sources.list
+- wget -O - https://apt.llvm.org/llvm-snapshot.gpg.key | sudo apt-key add -
+- sudo add-apt-repository --no-update -y ppa://josh-bialkowski/tangent
+- sudo apt-get update
+- sudo apt-get -y install
+    $(tr '\n' ' ' < apt-requirements-bionic.txt)
+- go get $(tr '\n' ' ' < go-requirements.txt)
+- npm install
+- pip install -r pip-requirements.txt
+
+script:
+- make all
+- make better-test
+- make lint
+
+env:
+  global:
+    # GITHUB_ACCESS_TOKEN=
+
+# jobs:
+#   include:
+#   - stage: deploy
+#     name: deploy-tag
+#     if: repo = cheshirekow/json
+#         AND NOT tag IS present
+#         AND branch =~ ^((master)|(staging))$
+#     python: 3.6
+#     script:
+#     - make push-github-pseudorelease-tag
+#   - name: deploy-artifacts
+#     python: 3.6
+#     if: repo = cheshirekow/json
+#         AND tag IS present
+#         AND (tag =~ ^pseudo-((master)|(staging))$
+#              OR tag =~ ^v\d+\.\d+\.\d+)
+#     script:
+#     - make push-github-release
+#     - make push-rtd-repo

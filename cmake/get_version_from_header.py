@@ -6,21 +6,25 @@ to be in the form of:
   { 0, 1, 0, "dev", 0 }
 """
 
+from __future__ import unicode_literals
+
 import argparse
 import os
 import io
 import sys
 
 OUTFILE_TPL = """
-set({macro} "{version}")
+set({macro} "{semver}")
+set({prefix}_API_VERSION "{api_version}")
+set({prefix}_SO_VERSION "{so_version}")
 """
 
 
 def main():
   argparser = argparse.ArgumentParser(description=__doc__)
+  argparser.add_argument("-o", "--outfilepath", default="-")
   argparser.add_argument("macro")
   argparser.add_argument("filepath")
-  argparser.add_argument("outfilepath", nargs="?", default="-")
   args = argparser.parse_args()
   if args.outfilepath == "-":
     args.outfilepath = os.dup(sys.stdout.fileno())
@@ -40,13 +44,26 @@ def main():
   # Split along commas
   verparts = [part.strip().strip('"') for part in version.split(",")]
 
+  prefix = args.macro
+  if not prefix.endswith("_VERSION"):
+    return 1
+
+  prefix = prefix[:-len("_VERSION")]
+  outputs = {
+      "macro": args.macro,
+      "prefix": prefix,
+      "so_version": ".".join(verparts[:2]),
+      "api_version": ".".join(verparts[:3]),
+  }
+
   semver = ".".join(verparts[:3])
   pre_release = "".join(verparts[3:])
   if pre_release:
     semver += "-" + pre_release
+  outputs["semver"] = semver
 
   with io.open(args.outfilepath, "w", encoding="utf-8") as outfile:
-    outfile.write("set({} \"{}\")\n".format(args.macro, semver))
+    outfile.write(OUTFILE_TPL.format(**outputs))
   return 0
 
 

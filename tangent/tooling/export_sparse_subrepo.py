@@ -76,14 +76,24 @@ def inner_main(command):
 
   repodir = subprocess.check_output(
       ["git", "rev-parse", "--show-toplevel"]).strip().decode("utf-8")
-  configfile = os.path.join(repodir, ".sparse-export")
-  if not os.path.exists(configfile):
+
+  exportsdir = os.path.join(repodir, "tangent/tooling/sparse-exports")
+  if os.path.exists(os.path.join(exportsdir, "iamgroot.txt")):
+    # This is the monorepo
     return 0
 
-  with io.open(configfile, "r", encoding="utf-8") as infile:
-    relpath_export = infile.read().strip()
-  export_dir = os.path.join(repodir, relpath_export)
+  sparse_sentinel = os.path.join(repodir, ".sparse-export")
+  if not os.path.exists(exportsdir) and os.path.exists(sparse_sentinel):
+    # This is the public export repo
+    return 0
 
+  dirnames = os.listdir(exportsdir)
+  if len(dirnames) != 1:
+    logger.error(
+        "Invalid sparse export, %s contains too many directories", exportsdir)
+    return 1
+
+  export_dir = os.path.join(exportsdir, dirnames[0])
   returncode = 0
   for directory, _dirnames, filenames in os.walk(export_dir):
     reldir = os.path.relpath(directory, export_dir)
@@ -95,8 +105,12 @@ def inner_main(command):
 
       sourcepath = os.path.join(directory, filename)
       if relpath_file == "sparse-checkout":
-        relpath_file = ".gitu/info/sparse-checkout"
-      destpath = os.path.join(repodir, relpath_file)
+        gitdir = subprocess.check_output(
+            ["git", "rev-parse", "--git-dir"]).decode("utf-8").strip()
+        destpath = os.path.join(gitdir, "info/sparse-checkout")
+      else:
+        destpath = os.path.join(repodir, relpath_file)
+
       returncode |= operation(sourcepath, destpath)
   return returncode
 

@@ -1,6 +1,144 @@
-# Wraps add_library and provides additional keyword options that translate
-# into additional calls to target_link_libraries, target_set_properties, etc.
-# Usage:
+# Split a list into named arguments in the current scope.
+#
+# Example:
+# ~~~
+# set(_mylist foo bar baz 1 2 3)
+# explode(_mylist _var1 _var2 _var3)
+# message(" var1: ${_var1}\n" " var2: ${_var2}\n" " var3: ${_var3}\n")
+# ~~~
+#
+# Which will output:
+# ~~~
+#  var1: foo
+#  var2: bar
+#  var3: baz
+# ~~~
+macro(explode _list)
+  set(_args ${ARGN})
+  list(LENGTH "${_list}" _list_len)
+  list(LENGTH _args _args_len)
+
+  if("${_args_len}" LESS "${_list_len}")
+    message(
+      FATAL_ERROR
+        " Can't explode ${_args_len} elements into ${_list_len} elements:\n"
+        " ${_args}")
+  endif()
+
+  set(_idx "0")
+  foreach(_varname ${ARGN})
+    list(GET ${_list} ${_idx} ${_varname})
+    math(EXPR _idx "${_idx} + 1}")
+  endforeach()
+endmacro()
+
+# Backport list(FILTER ...) to cmake < 3.6
+macro(list_filter)
+  if("${CMAKE_VERSION}" VERSION_GREATER "3.5.999")
+    list(FILTER ${ARGN})
+  else()
+    cmake_parse_arguments(_args "" "REGEX" "" ${ARGN})
+    explode(_args_UNPARSED_ARGUMENTS _list _mode)
+
+    set(_buffer)
+    if("${_mode}" STREQUAL "INCLUDE")
+      foreach(_elem ${_list})
+        if("${_elem}" MATCHES "${_args_REGEX}")
+          list(APPEND _buffer "${_elem}")
+        endif()
+      endforeach()
+    else()
+      foreach(_elem ${_list})
+        if(NOT "${_elem}" MATCHES "${_args_REGEX}")
+          list(APPEND _buffer "${_elem}")
+        endif()
+      endforeach()
+    endif()
+  endif()
+  set(${_list} ${_buffer})
+endmacro()
+
+# Wraps `execute_process` and reports error if any command in the list of
+# commands fails.
+function(check_call)
+  cmake_parse_arguments(_args "" "OUTPUT_VARIABLE;ERROR_VARIABLE" "" ${ARGN})
+
+  set(_request_results_list)
+  if("${CMAKE_VERSION}" VERSION_GREATER "3.9.999")
+    set(_request_results_list RESULTS_VARIABLE _results)
+  endif()
+
+  set(_results)
+  execute_process(
+    ${_args_UNPARSED_ARGUMENTS}
+    OUTPUT_VARIABLE _stdout
+    ERROR_VARIABLE _stderr
+    RESULT_VARIABLE _result ${_request_results_list})
+
+  set(_kwargs
+      "COMMAND"
+      "WORKING_DIRECTORY"
+      "TIMEOUT"
+      "RESULT_VARIABLE"
+      "RESULTS_VARIABLE"
+      "OUTPUT_VARIABLE"
+      "ERROR_VARIABLE"
+      "INPUT_FILE"
+      "OUTPUT_FILE"
+      "ERROR_FILE"
+      "OUTPUT_QUIET"
+      "ERROR_QUIET"
+      "OUTPUT_STRIP_TRAILING_WHITESPACE"
+      "ERROR_STRIP_TRAILING_WHITESPACE"
+      "ENCODING")
+  string(REPLACE ";" "|" _kwargs "${_kwargs}")
+  set(_buffer ${_args_UNPARSED_ARGUMENTS})
+
+  # Turn the cmake list into a regular string with '%' as an item separator
+  string(REPLACE ";" "%" _buffer "${_buffer}")
+  # Split the string at keyword boundaries
+  string(REGEX REPLACE "\\%(${_kwargs})\\%" ";\\1%" _buffer "${_buffer}")
+  # Remove list items that aren't COMMAND
+  list_filter(_buffer INCLUDE REGEX "COMMAND%.*")
+  # Save the list of commands
+  set(_cmds "${_buffer}")
+
+  set(_idx "0")
+  foreach(_result ${_results})
+    if(NOT "${_result}" EQUAL "0")
+      list(GET _cmds ${_idx} _cmdstr)
+      string(REPLACE "COMMAND%" "" _cmdstr "${_cmdstr}")
+      string(REPLACE "%" " " _cmdstr "${_cmdstr}")
+      message(FATAL_ERROR " Failed to execute command ${_idx}:\n   ${_cmdstr}")
+    endif()
+    math(EXPR _idx "${_idx} + 1}")
+  endforeach()
+
+  if(NOT "${_result}" EQUAL "0")
+    message(FATAL_ERROR " Failed to execute one or more command")
+  endif()
+
+  if(_args_OUTPUT_VARIABLE)
+    set(${_args_OUTPUT_VARIABLE}
+        ${_stdout}
+        PARENT_SCOPE)
+  endif()
+  if(_args_ERROR_VARIABLE)
+    set(${_args_ERROR_VARIABLE}
+        ${_stderr}
+        PARENT_SCOPE)
+  endif()
+endfunction()
+
+# Get a list of all known properties
+check_call(COMMAND ${CMAKE_COMMAND} --help-property-list
+           OUTPUT_VARIABLE _propslist)
+# Replace newlines with list separator
+string(REGEX REPLACE "[\n ]+" ";" _propslist "${_propslist}")
+set(KNOWN_PROPERTIES ${_propslist})
+
+# Wraps add_library and provides additional keyword options that translate into
+# additional calls to target_link_libraries, target_set_properties, etc. Usage:
 # ~~~
 #   cc_binary(<target-name> [STATIC|SHARED]
 #     SRCS src1.cc src2.cc src3.cc
@@ -22,7 +160,7 @@
 function(cc_library target_name)
   set(_flags)
   set(_oneargs)
-  set(_multiargs SRCS DEPS PKGDEPS)
+  set(_multiargs SRCS DEPS PKGDEPS PROPERTIES)
   cmake_parse_arguments(_args "${_flags}" "${_oneargs}" "${_multiargs}" ${ARGN})
 
   add_library(${target_name} ${_args_UNPARSED_ARGUMENTS} ${_args_SRCS})
@@ -31,6 +169,9 @@ function(cc_library target_name)
   endif()
   if(_args_PKGDEPS)
     target_pkg_depends(${target_name} ${_args_PKGDEPS})
+  endif()
+  if(_args_PROPERTIES)
+    set_target_properties(${target_name} PROPERTIES ${_args_PROPERTIES})
   endif()
 endfunction()
 
@@ -58,15 +199,18 @@ endfunction()
 function(cc_binary target_name)
   set(_flags)
   set(_oneargs)
-  set(_multiargs SRCS DEPS PKGDEPS)
+  set(_multiargs SRCS DEPS PKGDEPS PROPERTIES)
   cmake_parse_arguments(_args "${_flags}" "${_oneargs}" "${_multiargs}" ${ARGN})
 
-  add_executable(${target_name} ${_args_SRCS})
+  add_executable(${target_name} ${_args_UNPARSED_ARGUMENTS} ${_args_SRCS})
   if(_args_DEPS)
     target_link_libraries(${target_name} PUBLIC ${_args_DEPS})
   endif()
   if(_args_PKGDEPS)
     target_pkg_depends(${target_name} ${_args_PKGDEPS})
+  endif()
+  if(_args_PROPERTIES)
+    set_target_properties(${target_name} PROPERTIES ${_args_PROPERTIES})
   endif()
 endfunction()
 
@@ -135,4 +279,66 @@ function(cc_test target_name)
       APPEND
       PROPERTY LABELS ${_args_LABELS})
   endif()
+endfunction()
+
+macro(returnvars)
+  foreach(varname ${ARGN})
+    set(${varname}
+        "${${varname}}"
+        PARENT_SCOPE)
+  endforeach()
+endmacro()
+
+# Get the version string by parsing a C++ header file. The version is expected
+# to be in the form of:
+#
+# ~~~
+# define FOO_VERSION \
+#   { 0, 1, 0, "dev", 0 }
+# ~~~
+#
+# Usage:
+# ~~~
+# get_version_from_header(<header-path> <macro>)
+# ~~~
+#
+# Assigns into the calling scope a variable witht the same name as `${macro}`
+# the value of the version
+set_property(GLOBAL PROPERTY SEMVER_INCLUDENO 0)
+function(get_version_from_header headerpath macro)
+  get_property(_includeno GLOBAL PROPERTY SEMVER_INCLUDENO)
+  math(EXPR _includeno "${_includeno} + 1")
+  set_property(GLOBAL PROPERTY SEMVER_INCLUDENO ${_includeno})
+  set(_stubfile ${CMAKE_CURRENT_BINARY_DIR}/semver-${_includeno}.cmake)
+
+  if(NOT IS_ABSOLUTE ${headerpath})
+    set(headerpath ${CMAKE_CURRENT_SOURCE_DIR}/${headerpath})
+  endif()
+
+  execute_process(
+    COMMAND python -Bm cmake.get_version_from_header --outfile ${_stubfile}
+            ${macro} ${headerpath}
+    WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
+    RESULT_VARIABLE _retcode
+    OUTPUT_VARIABLE _stdout
+    ERROR_VARIABLE _stderr)
+  if(NOT "${_retcode}" EQUAL "0")
+    message(
+      FATAL_ERROR " Failed to extract version number from"
+                  " ${headerpath}: ${_retcode}\n" " ${_stdout}\n" " ${_stderr}")
+  endif()
+  include(${_stubfile} RESULT_VARIABLE _result)
+  if(_result STREQUAL NOTFOUND)
+    message(FATAL_ERROR "Failed to include stubfile ${_stubfile}")
+  endif()
+
+  string(REGEX MATCH "(.*)_VERSION" _match "${macro}")
+  if(_match)
+    set(_prefix ${CMAKE_MATCH_1})
+  else()
+    message(
+      FATAL_ERROR "Header version macro '${macro}' does not end in _VERSION")
+  endif()
+
+  returnvars(${_prefix}_VERSION ${_prefix}_API_VERSION ${_prefix}_SO_VERSION)
 endfunction()

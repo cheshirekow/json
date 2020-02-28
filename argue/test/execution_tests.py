@@ -22,7 +22,7 @@ EXPECT_HELP = """\
 ==========
 argue-demo
 ==========
-version: 0.1.3dev1
+version: 0.1.3-dev3
 author : Josh Bialkowski <josh.bialkowski@gmail.com>
 copyright: (C) 2018
 

@@ -1,4 +1,15 @@
-set(json_sources
+set(_headers
+    builder.h
+    item.h
+    json.h
+    parse.h
+    pipeline.h
+    stream_macros.h
+    type_registry.h
+    util.h
+    variant.h)
+
+set(_sources
     builder.cc
     item.cc
     json.cc
@@ -8,41 +19,59 @@ set(json_sources
     util.cc
     variant.cc)
 
-add_library(json STATIC ${json_sources})
-target_link_libraries(json PUBLIC fmt re2 util)
+get_version_from_header(json.h JSON_VERSION)
 
-add_library(json-shared SHARED ${json_sources})
-target_link_libraries(json-shared PUBLIC fmt-shared re2-shared util-shared)
+cc_library(
+  json STATIC
+  SRCS ${_sources}
+  DEPS fmt re2 util
+  PKGDEPS libglog
+  PROPERTIES ARCHIVE_OUTPUT_NAME tangent-json
+             VERSION "${JSON_API_VERSION}"
+             SOVERSION "${JSON_SO_VERSION}")
 
-foreach(_target json json-shared)
-  target_pkg_depends(${_target} libglog)
-endforeach()
+cc_library(
+  json-shared SHARED
+  SRCS ${_sources}
+  DEPS fmt-shared re2-shared util-shared
+  PKGDEPS libglog
+  PROPERTIES LIBRARY_OUTPUT_NAME tangent-json
+             VERSION "${JSON_API_VERSION}"
+             SOVERSION "${JSON_SO_VERSION}")
 
-add_executable(json.exe main.cc)
-target_link_libraries(json.exe PUBLIC argue json)
-set_target_properties(json.exe PROPERTIES OUTPUT_NAME json)
+set(_extra)
+if("${TANGENT_BUILD_CONTEXT}" STREQUAL "DEBIAN_PACKAGE")
+  set(_extra EXCLUDE_FROM_ALL)
+endif()
 
-set(json_files
-    builder.h
-    item.h
-    json.h
-    parse.h
-    pipeline.h
-    stream_macros.h
-    type_registry.h
-    util.h
-    variant.h
-    ${json_sources})
+cc_binary(
+  json.exe ${_extra}
+  SRCS main.cc
+  DEPS argue json
+  PROPERTIES OUTPUT_NAME json)
 
 format_and_lint(
   json
-  ${json_files}
+  ${_headers}
+  ${_sources}
   CMakeLists.txt
   doc/CMakeLists.txt
   doc/conf.py
   json_gen.py
   main.cc
-  EXCLUDE "test/.*")
+  EXCLUDE "test/.*" "semver-.*\\.cmake")
+
+configure_file(libtangent-json.pc
+               ${CMAKE_CURRENT_BINARY_DIR}/libtangent-json.pc @ONLY)
+
+install(
+  TARGETS json json-shared
+  ARCHIVE DESTINATION "${CMAKE_INSTALL_LIBDIR}"
+  LIBRARY DESTINATION "${CMAKE_INSTALL_LIBDIR}")
+install(FILES ${_headers}
+        DESTINATION "${CMAKE_INSTALL_INCLUDEDIR}/tangent/json")
+install(FILES ${CMAKE_CURRENT_BINARY_DIR}/libtangent-json.pc
+        DESTINATION "${CMAKE_INSTALL_LIBDIR}/pkgconfig")
 
 add_subdirectory(test)
 add_subdirectory(doc)

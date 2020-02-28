@@ -56,6 +56,14 @@ struct FlagStore {
   std::shared_ptr<ActionBase> action;  //< the action associated with the flag
 };
 
+// Helper to convert version tuple to a string
+class VersionString : public std::string {
+ public:
+  VersionString(int major, int minor, int patch);
+  VersionString(int major, int minor, int patch, const char* tag,
+                int increment);
+};
+
 // =============================================================================
 //                                 Parser
 // =============================================================================

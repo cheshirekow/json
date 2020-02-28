@@ -59,21 +59,22 @@ int main(int argc, char** argv) {
       .add_help = true,
       .add_version = true,
       .name = "argue-demo",
-      .version = "0.1.3dev1",
+      .version = argue::VersionString ARGUE_VERSION,
       .author = "Josh Bialkowski <josh.bialkowski@gmail.com>",
       .copyright = "(C) 2018",
   });
 
-  using namespace argue::keywords;
+  using namespace argue::keywords;  // NOLINT
 
   // clang-format off
   parser.add_argument(
-      "integer", nargs="+", choices={1, 2, 3, 4}, dest=&int_args,
-      help="an integer for the accumulator", metavar="N");
+      "integer", nargs="+", choices={1, 2, 3, 4}, dest=&int_args,  // NOLINT
+      help="an integer for the accumulator", metavar="N");         // NOLINT
 
   parser.add_argument(
-    "-s", "--sum", action="store_const", dest=&accumulate, const_=sum_fn,
-    default_=max_fn, help="sum the integers (default: find the max)");
+    "-s", "--sum", action="store_const", dest=&accumulate,  // NOLINT
+    const_=sum_fn, default_=max_fn,                         // NOLINT
+    help="sum the integers (default: find the max)");       // NOLINT
   // clang-format on
 
   int parse_result = parser.parse_args(argc, argv);

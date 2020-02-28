@@ -18,7 +18,7 @@
 #include "argue/storage_model.tcc"
 
 #define ARGUE_VERSION \
-  { 0, 1, 3, "dev", 2 }
+  { 0, 1, 3, "dev", 3 }
 
 // An command line argument parsing library
 namespace argue {}  // namespace argue

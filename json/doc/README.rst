@@ -1,6 +1,6 @@
-====
-json
-====
+=============
+tanngent-json
+=============
 
 A C++ library for working with JavaScript Object Notation.
 

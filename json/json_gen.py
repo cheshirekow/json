@@ -25,6 +25,12 @@ def escapename(qualified_name):
   return re.sub(r"\W", "_", qualified_name)
 
 
+if sys.version_info < (3, 0, 0):
+  STRING_TYPES = (str, unicode)
+else:
+  STRING_TYPES = (str,)
+
+
 class Context(object):
   """
   Passed in as part of the global namespace when executing a definition file.
@@ -65,8 +71,8 @@ class Context(object):
       for struct, dfields in decl.items():
         self.decl_json(struct, dfields, namespace)
     else:
-      if not isinstance(decl, str):
-        raise ValueError("decl must be a string, not {}".format(type(fields)))
+      if not isinstance(decl, STRING_TYPES):
+        raise ValueError("decl must be a string, not {}".format(type(decl)))
       if not isinstance(fields, (list, tuple)):
         raise ValueError("fields must be a list or tuple, not {}"
                          .format(type(fields)))

@@ -1,6 +1,8 @@
 // Copyright 2018-2020 Josh Bialkowski <josh.bialkowski@gmail.com>
 #include "argue/kwargs.h"
 
+#include <cstdint>
+
 #include "argue/exception.h"
 #include "argue/parse.h"
 #include "util/container_of.h"
@@ -205,6 +207,11 @@ void KWargs<void>::MetavarField::operator=(const char* value) {
 }
 
 // NOTE(josh): work around apparent bug in gcc 5.5??
-template class KWargs<int>;
+template class KWargs<int16_t>;
+template class KWargs<int32_t>;
+template class KWargs<int64_t>;
+template class KWargs<uint16_t>;
+template class KWargs<uint32_t>;
+template class KWargs<uint64_t>;
 
 }  // namespace argue

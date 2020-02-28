@@ -9,7 +9,7 @@ v0.1 series
 v0.1.3
 ======
 
-dev1:
+dev0:
 -----
 
 * On error, usage string is appended to exception message, meaning that
@@ -25,7 +25,7 @@ dev1:
 
 Closes: 405abc1, 4f5e576, db38521, e95f5f5
 
-dev2:
+dev1:
 -----
 
 * Split argue.h/argue.cc into separate files based on concepts
@@ -36,7 +36,7 @@ dev2:
 
 Closes: 0310925, 8d56785
 
-dev3:
+dev2:
 -----
 
 * Implement keywords API
@@ -49,6 +49,12 @@ dev3:
 
 Closes: 41e5630, 504d241, 73c5d7a, aead983, d5c7d88
 
+dev3:
+-----
+
+* Implement debian package build
+
+Closes: 51f1ef7
 
 v0.1.2
 ======

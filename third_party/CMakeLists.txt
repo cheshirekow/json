@@ -31,7 +31,20 @@ if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/googletest)
 endif()
 
 # NOTE(josh): don't build re2 if it's not part of this sparse checkout
-if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/re2)
+if("${TANGENT_BUILD_CONTEXT}" STREQUAL "DEBIAN_PACKAGE")
+  add_library(re2 STATIC IMPORTED GLOBAL)
+  set_property(TARGET re2 PROPERTY IMPORTED_LOCATION
+                                   /usr/${CMAKE_INSTALL_LIBDIR}/libre2.a)
+  set_property(TARGET re2 PROPERTY IMPORTED_LINK_INTERFACE_LIBRARIES
+                                   Threads::Threads)
+  add_library(re2-shared SHARED IMPORTED GLOBAL)
+  set_property(
+    TARGET re2-shared PROPERTY IMPORTED_LOCATION
+                               /usr/${CMAKE_INSTALL_LIBDIR}/libre2.so)
+  set_property(TARGET re2-shared PROPERTY IMPORTED_LINK_INTERFACE_LIBRARIES
+                                          Threads::Threads)
+
+elseif(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/re2)
   message("Enabling third_party:re2 for this checkout")
   set(re2_sources
       re2/util/rune.cc
@@ -64,14 +77,16 @@ if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/re2)
   foreach(_target re2 re2-shared)
     target_link_libraries(${_target} Threads::Threads)
   endforeach()
-
 endif()
 
-foreach(_subdir fmt)
-  if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/${_subdir})
-    add_subdirectory(${_subdir})
-  endif()
-endforeach()
+if("${TANGENT_BUILD_CONTEXT}" STREQUAL "DEBIAN_PACKAGE")
+  add_library(fmt STATIC IMPORTED GLOBAL)
+  set_property(TARGET fmt PROPERTY IMPORTED_LOCATION /usr/lib/libfmt.a)
+  add_library(fmt-shared SHARED IMPORTED GLOBAL)
+  set_property(TARGET fmt-shared PROPERTY IMPORTED_LOCATION /usr/lib/libfmt.a)
+elseif(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/fmt)
+  add_subdirectory(fmt)
+endif()
 
 if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/CImg)
   add_library(cimg INTERFACE)

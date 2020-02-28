@@ -2,8 +2,8 @@
 Changelog
 =========
 
-v0.2.4 - in progress
-====================
+v0.2.5
+======
 
 * Tokenizer and Parser now have peek-ahead capability
 * Don't choke on empty list ("[]") or object ("{}")

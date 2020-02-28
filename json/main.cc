@@ -164,14 +164,13 @@ int markup_file(const ProgramOpts& opts, const std::string& content) {
 }
 
 const char* kProlog =
-    ""
     "Demonstrates the usage of the json library to lex and parse JSON data";
 
 int main(int argc, char** argv) {
   argue::Parser parser({.add_help = true,
                         .add_version = true,
                         .name = "json",
-                        .version = JSON_VERSION,
+                        .version = argue::VersionString JSON_VERSION,
                         .author = "Josh Bialkowski <josh.bialkowski@gmail.com>",
                         .copyright = "(C) 2018",
                         .prolog = kProlog});

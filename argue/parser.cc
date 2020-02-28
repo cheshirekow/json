@@ -120,6 +120,19 @@ std::string wrap(const std::string text, size_t line_length) {
   return wrapped.str();
 }
 
+VersionString::VersionString(int major, int minor, int patch) {
+  std::stringstream strstrm{};
+  strstrm << major << "." << minor << "." << patch;
+  this->assign(strstrm.str());
+}
+
+VersionString::VersionString(int major, int minor, int patch, const char* tag,
+                             int increment) {
+  std::stringstream strstrm{};
+  strstrm << major << "." << minor << "." << patch << "-" << tag << increment;
+  this->assign(strstrm.str());
+}
+
 // =============================================================================
 //                                 Parser
 // =============================================================================

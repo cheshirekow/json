@@ -9,64 +9,61 @@ add_custom_command(
           ${CMAKE_SOURCE_DIR}/json/json_gen.cc.tpl
           ${CMAKE_CURRENT_LISTFILE})
 
-add_executable(json-lexer_test lexer_test.cc)
-target_link_libraries(json-lexer_test gtest gtest_main json)
-add_test(
-  NAME json-lexer_test
-  COMMAND json-lexer_test
+cc_test(
+  json-lexer_test
+  SRCS lexer_test.cc
+  DEPS gtest gtest_main json
   WORKING_DIRECTORY ${CMAKE_SOURCE_DIR})
 
-add_executable(json-parser_test parser_test.cc)
-target_link_libraries(json-parser_test gtest gtest_main json)
-add_test(
-  NAME json-parser_test
-  COMMAND json-parser_test
+cc_test(
+  json-parser_test
+  SRCS parser_test.cc
+  DEPS gtest gtest_main json
   WORKING_DIRECTORY ${CMAKE_SOURCE_DIR})
 
-add_executable(json-builder_test builder_test.cc)
-target_link_libraries(json-builder_test gtest gtest_main json)
-add_test(
-  NAME json-builder_test
-  COMMAND json-builder_test
+cc_test(
+  json-builder_test
+  SRCS builder_test.cc
+  DEPS gtest gtest_main json
   WORKING_DIRECTORY ${CMAKE_SOURCE_DIR})
 
-add_executable(json-variant_test variant_test.cc)
-target_link_libraries(json-variant_test gtest gtest_main json)
-add_test(
-  NAME json-variant_test
-  COMMAND json-variant_test
+cc_test(
+  json-variant_test
+  SRCS variant_test.cc
+  DEPS gtest gtest_main json
   WORKING_DIRECTORY ${CMAKE_SOURCE_DIR})
 
-add_executable(json-stream_test stream_test.cc)
-target_link_libraries(json-stream_test gtest gtest_main json)
-add_test(
-  NAME json-stream_test
-  COMMAND json-stream_test
+cc_test(
+  json-stream_test
+  SRCS stream_test.cc
+  DEPS gtest gtest_main json
   WORKING_DIRECTORY ${CMAKE_SOURCE_DIR})
 
-add_executable(json-macro_test macro_test.cc)
-target_link_libraries(json-macro_test gtest gtest_main json)
-add_test(
-  NAME json-macro_test
-  COMMAND json-macro_test
+cc_test(
+  json-macro_test
+  SRCS macro_test.cc
+  DEPS gtest gtest_main json
   WORKING_DIRECTORY ${CMAKE_SOURCE_DIR})
 
-add_executable(json-stream_gen_test ${CMAKE_CURRENT_BINARY_DIR}/test_types.cc
-                                    stream_gen_test.cc)
+# NOTE(josh): debian package build environment does not include jinja2 so we
+# can't run the codegen and we can't build the tests
+set(_extra)
+if("${TANGENT_BUILD_CONTEXT}" STREQUAL "DEBIAN_PACKAGE")
+  set(_extra EXCLUDE_FROM_ALL)
+endif()
+cc_test(
+  json-stream_gen_test ${_extra}
+  SRCS ${CMAKE_CURRENT_BINARY_DIR}/test_types.cc stream_gen_test.cc
+  DEPS gtest gtest_main json
+  WORKING_DIRECTORY ${CMAKE_SOURCE_DIR})
 target_include_directories(json-stream_gen_test PRIVATE ${CMAKE_BINARY_DIR})
-target_link_libraries(json-stream_gen_test gtest gtest_main json)
-add_test(
-  NAME json-stream_gen_test
-  COMMAND json-stream_gen_test
-  WORKING_DIRECTORY ${CMAKE_SOURCE_DIR})
 
-add_executable(json-type_registry_test type_registry_test.cc)
-target_include_directories(json-type_registry_test PRIVATE ${CMAKE_BINARY_DIR})
-target_link_libraries(json-type_registry_test gtest gtest_main json)
-add_test(
-  NAME json-type_registry_test
-  COMMAND json-type_registry_test
+cc_test(
+  json-type_registry_test ${_extra}
+  SRCS type_registry_test.cc
+  DEPS gtest gtest_main json
   WORKING_DIRECTORY ${CMAKE_SOURCE_DIR})
+target_include_directories(json-type_registry_test PRIVATE ${CMAKE_BINARY_DIR})
 
 add_test(
   NAME json-frontend-tests

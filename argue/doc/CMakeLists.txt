@@ -10,20 +10,6 @@ add_custom_command(
   COMMAND ${CMAKE_COMMAND} -E make_directory ${_stage}/bits
   WORKING_DIRECTORY ${CMAKE_SOURCE_DIR})
 
-set(ARGUE_VERSION)
-execute_process(
-  COMMAND
-    python -Bm cmake.get_version_from_header ARGUE_VERSION
-    ${CMAKE_SOURCE_DIR}/argue/argue.h
-    ${CMAKE_CURRENT_BINARY_DIR}/argue-semver.cmake
-  WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
-  RESULT_VARIABLE _retcode
-  OUTPUT_QUIET ERROR_QUIET)
-if(NOT "${_retcode}" EQUAL "0")
-  message(
-    FATAL_ERROR "Failed to extract version number from argue.h ${_retcode}")
-endif()
-include(${CMAKE_CURRENT_BINARY_DIR}/argue-semver.cmake)
 configure_file(conf.py ${_stage}/conf.py @ONLY)
 list(APPEND _copyfiles ${_stage}/conf.py)
 

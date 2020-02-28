@@ -60,6 +60,7 @@ _argue_autocomplete_global() {
     local IFS=$(echo -e '\v')
     # NOTE(josh): Consider also passing the following to the program:
     # COMP_LINE, COMP_POINT, COMP_TYPE, COMP_KEY, COMP_WORDBREAKS, COMP_WORDS
+    # shellcheck disable=SC2207
     COMPREPLY=( $(_ARGUECOMPLETE="1"\
           _ARGUECOMPLETE_IFS="$IFS" \
           COMP_CWORD="$COMP_CWORD" \

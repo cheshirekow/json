@@ -13,10 +13,18 @@ include(${CMAKE_SOURCE_DIR}/cmake/pkgconfig.cmake)
 include(${CMAKE_SOURCE_DIR}/cmake/wrappers.cmake)
 
 detect_buildenv()
+message("Detected sparse export: ${TANGENT_SPARSE_EXPORT}")
+
 if(NOT CMAKE_INSTALL_PREFIX)
   set(CMAKE_INSTALL_PREFIX
       ${CMAKE_BINARY_DIR}/install
       CACHE PATH "cmake installation directory")
+endif()
+
+if(NOT TANGENT_BUILD_CONTEXT)
+  set(TANGENT_BUILD_CONTEXT
+      WORKSTATION
+      CACHE STRING "what is the context for the current build")
 endif()
 
 find_package(Threads REQUIRED)
@@ -105,17 +113,6 @@ if(EXISTS ${CMAKE_SOURCE_DIR}/doxy.config.in)
   add_dependencies(doc doxygen)
 endif()
 
-# Validate sparse or update sparse export
-add_custom_target(
-  update-export
-  COMMAND python -Bm tangent.tooling.export_sparse_subrepo update
-  WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
-  COMMENT "Updataing sparse export")
-
-add_test(
-  NAME verify-export
-  COMMAND python -Bm tangent.tooling.export_sparse_subrepo update
-  WORKING_DIRECTORY ${CMAKE_SOURCE_DIR})
 
 add_custom_target(
   better-test
