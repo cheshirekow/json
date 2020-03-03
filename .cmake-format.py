@@ -105,5 +105,13 @@ with section("parse"):
       "kwargs": {
         "VARS": "+"
       }
+    },
+    "stage_files": {
+      "kwargs": {
+        "LIST": 1,
+        "STAGE": 1,
+        "SOURCEDIR": 1,
+        "FILES": "*"
+      }
     }
   }

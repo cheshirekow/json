@@ -11,7 +11,7 @@
 #include "util/fixed_string_stream.h"
 
 #define JSON_VERSION \
-  { 0, 2, 5, "dev", 1 }
+  { 0, 2, 6, "dev", 0 }
 
 // Tools for parsing and emitting JSON formatted data
 namespace json {

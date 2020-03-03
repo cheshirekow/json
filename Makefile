@@ -1,3 +1,16 @@
+# Requirements (based on ubuntu 16.04)
+# apt-get install
+#		python-pip
+#   cmake
+#
+# pip install --upgrade pip
+# pip install --user
+#   autopep8
+#   flake8
+#   pylint
+#   sphinx
+#
+
 mkfile_path := $(abspath $(lastword $(MAKEFILE_LIST)))
 current_dir := $(notdir $(patsubst %/,%,$(dir $(mkfile_path))))
 

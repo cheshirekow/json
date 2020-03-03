@@ -25,23 +25,25 @@ script:
 env:
   global:
     # GITHUB_ACCESS_TOKEN=
+    secure: "juXUIte7yhHQF4jVOf+PgqSJo343yb4UJWXR1YOgNY1GUePyEDPZqr2xu1+goMzSIoy+yyQXUav78OqDmpQRGi8pWjTMbkKElC10GM/hj8HZb9Zpxv/KCCla4k3ubTDh4fQUfuzSe76sj9i/AwFAq60s+ZqJIIVVhZmD1DuWiI7LiWMwpg4VZ5fuDQgFyhG+KsN8YbmmUq/f0cFqOhpm2Y2/YVOiD4MzAmehgraG0W6UfRJpgHay5UMnDx5qJZR0oCCHCBkgrxUDYg/2WnlDl0sE3yUoju5JfwpRF8wdJaylLLYfGKI2sBV1QGAXVBBGnctcrBnzyqC8sDLwCKmcKnC+deFbdXf7lmBznga7jiI0tf9LSVIztKGTcISydx5wqiTubRKa4wa48XiI5VZjGUZ76JbV2YKVa/STRuxCxLsz8TMAfMINHo1RRZwO3+ymH5AxwpAgneISXo2lQkaWNNeSO530r5qXQ02bEDDApChm0rDdEt+vvxBlGFuXgr+zPB7AckQi4Px/SzjYEOdaca1EDmTXz6hOwtzAqUNw8dhmfdSbOpfwpI7dmFclINl4MXnzPi6ErJdqHtRlAzQJVaSMdRXov77dOwqHq40UhHlp4SjtLL7omRQoUXk+gVLhQqkqGFYV8Hj0fMTUJ6vP3ksp03fvkMZ2+YtJjewoTQ4="
 
-# jobs:
-#   include:
-#   - stage: deploy
-#     name: deploy-tag
-#     if: repo = cheshirekow/json
-#         AND NOT tag IS present
-#         AND branch =~ ^((master)|(staging))$
-#     python: 3.6
-#     script:
-#     - make push-github-pseudorelease-tag
-#   - name: deploy-artifacts
-#     python: 3.6
-#     if: repo = cheshirekow/json
-#         AND tag IS present
-#         AND (tag =~ ^pseudo-((master)|(staging))$
-#              OR tag =~ ^v\d+\.\d+\.\d+)
-#     script:
-#     - make push-github-release
-#     - make push-rtd-repo
+
+jobs:
+  include:
+  - stage: deploy
+    name: deploy-tag
+    if: repo = cheshirekow/json
+        AND NOT tag IS present
+        AND branch =~ ^((master)|(staging))$
+    python: 3.6
+    script:
+    - make push-json-github-pseudorelease-tag
+  - name: deploy-artifacts
+    python: 3.6
+    if: repo = cheshirekow/json
+        AND tag IS present
+        AND (tag =~ ^pseudo-((master)|(staging))$
+             OR tag =~ ^v\d+\.\d+\.\d+)
+    script:
+    - make push-json-github-release
+    - make push-json-rtd-repo

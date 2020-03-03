@@ -59,7 +59,7 @@ format_and_lint(
   doc/conf.py
   json_gen.py
   main.cc
-  EXCLUDE "test/.*" "semver-.*\\.cmake")
+  EXCLUDE "doc/stage" "test/.*" "semver-.*\\.cmake")
 
 configure_file(libtangent-json.pc
                ${CMAKE_CURRENT_BINARY_DIR}/libtangent-json.pc @ONLY)
@@ -73,5 +73,61 @@ install(FILES ${_headers}
 install(FILES ${CMAKE_CURRENT_BINARY_DIR}/libtangent-json.pc
         DESTINATION "${CMAKE_INSTALL_LIBDIR}/pkgconfig")
 
+if(IS_TRAVIS_CI)
+  add_custom_command(
+    OUTPUT ${CMAKE_CURRENT_BINARY_DIR}/libtangent-json.deploy_key
+    COMMAND
+      # cmake-format: off
+      openssl aes-256-cbc
+      -K $ENV{encrypted_3bbe8f6101ca_key}
+      -iv $ENV{encrypted_3bbe8f6101ca_iv}
+      -in ${CMAKE_SOURCE_DIR}/tangent/tooling/deploy_keys/libtangent-json.enc
+      -out ${CMAKE_CURRENT_BINARY_DIR}/libtangent-json.deploy_key
+      -d
+      # cmake-format: on
+    COMMAND chmod 0600 ${CMAKE_CURRENT_BINARY_DIR}/libtangent-json.deploy_key
+    WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
+    COMMENT "Decrypting libtangent-json.deploy_key")
+endif()
+
+add_custom_target(
+  push-json-github-pseudorelease-tag
+  COMMAND python -Bm tangent.tooling.github create-pseudorelease-tag
+          cheshirekow/json \$\${TRAVIS_BRANCH}
+  DEPENDS ${CMAKE_CURRENT_BINARY_DIR}/libtangent-json.deploy_key
+  WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
+  COMMENT "Pushing doc artifacts to the RTD repository")
+
+add_custom_command(
+  OUTPUT ${CMAKE_CURRENT_BINARY_DIR}/release_notes-${JSON_VERSION}.rst
+  COMMAND
+    python -Bm tangent.tooling.get_release_notes json/doc/release_notes.rst
+    \$\${TRAVIS_TAG} -o
+    ${CMAKE_CURRENT_BINARY_DIR}/release_notes-${JSON_VERSION}.rst
+  DEPENDS doc/release_notes.rst
+          ${CMAKE_SOURCE_DIR}/tangent/tooling/get_release_notes.py
+  WORKING_DIRECTORY ${CMAKE_SOURCE_DIR})
+
+add_custom_command(
+  OUTPUT ${CMAKE_CURRENT_BINARY_DIR}/release_notes-${JSON_VERSION}.md
+  COMMAND
+    pandoc -s -o ${CMAKE_CURRENT_BINARY_DIR}/release_notes-${JSON_VERSION}.md
+    ${CMAKE_CURRENT_BINARY_DIR}/release_notes-${JSON_VERSION}.rst
+  DEPENDS ${CMAKE_CURRENT_BINARY_DIR}/release_notes-${JSON_VERSION}.rst
+  WORKING_DIRECTORY ${CMAKE_SOURCE_DIR})
+
 add_subdirectory(test)
 add_subdirectory(doc)
+
+add_custom_target(
+  push-json-github-release
+  COMMAND
+    # cmake-format: off
+    python -Bm tangent.tooling.github push-release
+      --message ${CMAKE_CURRENT_BINARY_DIR}/release_notes-${JSON_VERSION}.md
+      cheshirekow/json \$\${TRAVIS_TAG}
+      # ${CMAKE_BINARY_DIR}/debian/libtangent-json_${JSON_VERSION}.orig.tar.gz
+    # cmake-format: on
+  DEPENDS ${CMAKE_CURRENT_BINARY_DIR}/release_notes-${JSON_VERSION}.md
+  COMMENT "Uploading json release artifacts"
+  WORKING_DIRECTORY ${CMAKE_SOURCE_DIR})

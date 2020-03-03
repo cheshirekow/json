@@ -29,7 +29,7 @@ applications. In particular, the design supports:
    old_stream
    json_program
    changelog
-   todo
+   release_notes
 
 Indices and tables
 ==================

@@ -2,6 +2,14 @@
 Changelog
 =========
 
+v0.2.6 -- in-progress
+=====================
+
+* Implement travis build
+* Implement pseudo-release-tag -> readthedocs build pipeline
+
+Closes: adfd69d, c3f0854
+
 v0.2.5
 ======
 

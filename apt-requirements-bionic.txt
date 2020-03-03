@@ -4,5 +4,6 @@ doxygen
 libeigen3-dev
 libgoogle-glog-dev
 libloki-dev
+libmagic-dev
 pandoc
 pkg-config
