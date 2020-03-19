@@ -1,0 +1,13 @@
+prefix=/usr
+exec_prefix=${prefix}
+libdir=${prefix}/@CMAKE_INSTALL_LIBDIR@
+includedir=${prefix}/@CMAKE_INSTALL_INCLUDEDIR@
+
+Name: libtangent-json
+Description: JSON utility library for C++
+Version: @JSON_VERSION@
+
+Requires.private:
+Libs: -L${libdir} -ltangent-json -lre2
+Libs.private:
+Cflags: -I${includedir}/tangent

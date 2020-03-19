@@ -30,64 +30,6 @@ if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/googletest)
   # ${CMAKE_THREAD_LIBS_INIT})
 endif()
 
-# NOTE(josh): don't build re2 if it's not part of this sparse checkout
-if("${TANGENT_BUILD_CONTEXT}" STREQUAL "DEBIAN_PACKAGE")
-  add_library(re2 STATIC IMPORTED GLOBAL)
-  set_property(TARGET re2 PROPERTY IMPORTED_LOCATION
-                                   /usr/${CMAKE_INSTALL_LIBDIR}/libre2.a)
-  set_property(TARGET re2 PROPERTY IMPORTED_LINK_INTERFACE_LIBRARIES
-                                   Threads::Threads)
-  add_library(re2-shared SHARED IMPORTED GLOBAL)
-  set_property(
-    TARGET re2-shared PROPERTY IMPORTED_LOCATION
-                               /usr/${CMAKE_INSTALL_LIBDIR}/libre2.so)
-  set_property(TARGET re2-shared PROPERTY IMPORTED_LINK_INTERFACE_LIBRARIES
-                                          Threads::Threads)
-
-elseif(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/re2)
-  message("Enabling third_party:re2 for this checkout")
-  set(re2_sources
-      re2/util/rune.cc
-      re2/util/strutil.cc
-      re2/re2/bitstate.cc
-      re2/re2/compile.cc
-      re2/re2/dfa.cc
-      re2/re2/filtered_re2.cc
-      re2/re2/mimics_pcre.cc
-      re2/re2/nfa.cc
-      re2/re2/onepass.cc
-      re2/re2/parse.cc
-      re2/re2/perl_groups.cc
-      re2/re2/prefilter.cc
-      re2/re2/prefilter_tree.cc
-      re2/re2/prog.cc
-      re2/re2/re2.cc
-      re2/re2/regexp.cc
-      re2/re2/set.cc
-      re2/re2/simplify.cc
-      re2/re2/stringpiece.cc
-      re2/re2/tostring.cc
-      re2/re2/unicode_casefold.cc
-      re2/re2/unicode_groups.cc)
-
-  add_library(re2 STATIC ${re2_sources})
-  add_library(re2-shared SHARED ${re2_sources})
-  set_target_properties(re2 re2-shared PROPERTIES OUTPUT_NAME re2 DEBUG_POSTFIX
-                                                                  d)
-  foreach(_target re2 re2-shared)
-    target_link_libraries(${_target} Threads::Threads)
-  endforeach()
-endif()
-
-if("${TANGENT_BUILD_CONTEXT}" STREQUAL "DEBIAN_PACKAGE")
-  add_library(fmt STATIC IMPORTED GLOBAL)
-  set_property(TARGET fmt PROPERTY IMPORTED_LOCATION /usr/lib/libfmt.a)
-  add_library(fmt-shared SHARED IMPORTED GLOBAL)
-  set_property(TARGET fmt-shared PROPERTY IMPORTED_LOCATION /usr/lib/libfmt.a)
-elseif(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/fmt)
-  add_subdirectory(fmt)
-endif()
-
 if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/CImg)
   add_library(cimg INTERFACE)
   target_include_directories(cimg INTERFACE CImg)

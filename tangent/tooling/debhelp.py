@@ -32,15 +32,21 @@ def parse_changelog(logpath):
     lineiter = iter(infile)
     firstline = next(lineiter)
 
-  pattern = r"(\S+) \(([\d\.]+)-(\S+)\) (\S+); urgency=\S+"
+  pattern = r"(\S+) \(([^\)]+)\) (\S+); urgency=\S+"
   match = re.match(pattern, firstline)
   assert match, "Failed to match firstline pattern:\n {}".format(firstline)
-  package_name = match.group(1)
-  upstream_version = match.group(2)
-  local_version = match.group(3)
-  distribution = match.group(4)
 
-  return package_name, upstream_version, local_version, distribution
+  package_name = match.group(1)
+  version = match.group(2)
+  distribution = match.group(3)
+
+  if "-" in version:
+    upstream_version, debian_revision = version.rsplit("-", 1)
+  else:
+    upstream_version = version
+    debian_revision = 0
+
+  return package_name, upstream_version, debian_revision, distribution
 
 
 class Flags(enum.IntEnum):
@@ -215,8 +221,8 @@ def translate_changelog(src, dst, distro):
   if not os.path.exists(parent):
     os.makedirs(parent)
 
-  pattern = r"(\S+ \([\d\.]+-\S+\) )ubuntu(; urgency=\S+)"
-  replacement = r"\1{}\2".format(distro)
+  pattern = r"(\S+) \(([^\)]+)\) ubuntu; (urgency=\S+)"
+  replacement = r"\1 (\2~{0}) {0}; \3".format(distro)
   entry_regex = re.compile(pattern)
   with open(src, "r") as infile:
     with open(dst, "w") as outfile:
@@ -274,6 +280,7 @@ def parse_changelog_cmdfn(args):
     outfile.write(
         PARSE_CHANGELOG_FORMAT.format(args.prefix, *info[:3]))
   return 0
+
 
 def check_manifest_cmdfn(args):
   if args.patterns_from:

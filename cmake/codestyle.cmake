@@ -1,39 +1,39 @@
-# porcelain for format and lint rules
-
-# Create format and lint rules for module files
+# Create format and lint rules for a file manifest
 #
 # usage:
 # ~~~
-# format_and_lint(
-#   module
-#   bar.h bar.cc
-#   CMAKE CMakeLists.txt test/CMakeLists.txt
-#   CC foo.h foo.cc
-#   CCDEPENDS ${CMAKE_BINARY_DIR}/generated.h ${CMAKE_BINARY_DIR}/generated.cc)
-#   PY foo.py
+# format_and_lint(<slug>
+#   <file-list>
+#   [BZL <bzl-file-list>]
+#   [CMAKE <cmake-file-list>]
+#   [CC <cc-file-list>]
+#   [JS <js-file-list>]
+#   [PY <py-file-list>]
+#   [SHELL <sh-file-list>])
 # ~~~
 #
-# Will create rules `${module}_lint` and `${module}_format` using the standard
-# code formatters and lint checkers for the appropriate language. These tools
-# are:
+# Will create rules `${slug}_lint` and `${slug}_format` using the standard code
+# formatters and lint checkers for the appropriate language. These tools are:
 #
 # ~~~
+# BZL:
+#   formatter: buildifier
+#
 # CMAKE:
 #   formatter: cmake-format
+#    linter: cmake-lint
 #
-# CPP:
+# CC:
 #   formatter: clang-format
 #   linter: cpplint, clang-tidy
 #
-# PYTHON:
+# JS:
+#   formatter: js-beautify
+#   linter: eslint
+#
+# PY:
 #   formatter: autopep8
 #   linter: pylint, flake8
-#
-# Note that CCDEPENDS can be used to list additional file-level dependencies of
-# the generated rule. This is needed for any generated header files that may
-# be included by files that are to be linted. clang-tidy will fail out if it
-# cannot find the headers or if they are stale. We will need the code generator
-# to run before linting the dependant files.
 # ~~~
 if(EXISTS ${CMAKE_SOURCE_DIR}/cmake_format)
   set(CMAKE_FORMAT_CMD python -Bm cmake_format)
@@ -41,7 +41,7 @@ else()
   set(CMAKE_FORMAT_CMD cmake-format)
 endif()
 
-function(format_and_lint module)
+function(format_and_lint slug)
   set(_multiargs
       BZL
       CMAKE
@@ -49,8 +49,7 @@ function(format_and_lint module)
       CCDEPENDS
       JS
       PY
-      SHELL
-      EXCLUDE)
+      SHELL)
   cmake_parse_arguments(_args "" "" "${_multiargs}" ${ARGN})
   set(_unknown_files)
   foreach(_arg ${_args_UNPARSED_ARGUMENTS})
@@ -59,13 +58,13 @@ function(format_and_lint module)
        OR "${_arg}" MATCHES "(.*/)?WORKSPACE")
       list(APPEND _args_BZL ${_arg})
     elseif("${_arg}" MATCHES ".*\\.cmake$" OR "${_arg}" MATCHES
-                                             ".*CMakeLists.txt")
+                                              ".*CMakeLists.txt")
       list(APPEND _args_CMAKE ${_arg})
     elseif("${_arg}" MATCHES ".*\\.py$")
       list(APPEND _args_PY ${_arg})
     elseif("${_arg}" MATCHES ".*\\.(h|(hh)|(hpp))$")
       list(APPEND _args_CC ${_arg})
-      elseif("${_arg}" MATCHES ".*\\.tcc$")
+    elseif("${_arg}" MATCHES ".*\\.tcc$")
       list(APPEND _args_CC ${_arg})
     elseif("${_arg}" MATCHES ".*\\.(c|(cc)|(cpp))$")
       list(APPEND _args_CC ${_arg})
@@ -331,28 +330,31 @@ function(format_and_lint module)
     list(APPEND _shell_lintdeps
          ${CMAKE_CURRENT_BINARY_DIR}/${_filename}.lintstamp)
 
-    add_custom_command(
-      OUTPUT ${CMAKE_CURRENT_BINARY_DIR}/${_filename}.fmtstamp
-      COMMAND beautysh --indent-size=2 ${CMAKE_CURRENT_SOURCE_DIR}/${_filename}
-      COMMAND ${CMAKE_COMMAND} -E make_directory ${_dirpath}
-      COMMAND ${CMAKE_COMMAND} -E touch
-              ${CMAKE_CURRENT_BINARY_DIR}/${_filename}.fmtstamp
-      DEPENDS ${_filename}
-      WORKING_DIRECTORY ${CMAKE_SOURCE_DIR})
-    list(APPEND _shell_fmtdeps
-         ${CMAKE_CURRENT_BINARY_DIR}/${_filename}.fmtstamp)
-
-    add_custom_command(
-      OUTPUT ${CMAKE_CURRENT_BINARY_DIR}/${_filename}.chkfmt
-      COMMAND beautysh --indent-size=2 --check
-              ${CMAKE_CURRENT_SOURCE_DIR}/${_filename}
-      COMMAND ${CMAKE_COMMAND} -E make_directory ${_dirpath}
-      COMMAND ${CMAKE_COMMAND} -E touch
-              ${CMAKE_CURRENT_BINARY_DIR}/${_filename}.chkfmt
-      DEPENDS ${_filename}
-      WORKING_DIRECTORY ${CMAKE_SOURCE_DIR})
-    list(APPEND _shell_chkfmtdeps
-         ${CMAKE_CURRENT_BINARY_DIR}/${_filename}.chkfmt)
+    # NOTE(josh): beautysh is broken. It destroys shell scripts
+    # ~~~
+    # add_custom_command(
+    #   OUTPUT ${CMAKE_CURRENT_BINARY_DIR}/${_filename}.fmtstamp
+    #   COMMAND beautysh --indent-size=2 ${CMAKE_CURRENT_SOURCE_DIR}/${_filename}
+    #   COMMAND ${CMAKE_COMMAND} -E make_directory ${_dirpath}
+    #   COMMAND ${CMAKE_COMMAND} -E touch
+    #           ${CMAKE_CURRENT_BINARY_DIR}/${_filename}.fmtstamp
+    #   DEPENDS ${_filename}
+    #   WORKING_DIRECTORY ${CMAKE_SOURCE_DIR})
+    # list(APPEND _shell_fmtdeps
+    #      ${CMAKE_CURRENT_BINARY_DIR}/${_filename}.fmtstamp)
+    #
+    # add_custom_command(
+    #   OUTPUT ${CMAKE_CURRENT_BINARY_DIR}/${_filename}.chkfmt
+    #   COMMAND beautysh --indent-size=2 --check
+    #           ${CMAKE_CURRENT_SOURCE_DIR}/${_filename}
+    #   COMMAND ${CMAKE_COMMAND} -E make_directory ${_dirpath}
+    #   COMMAND ${CMAKE_COMMAND} -E touch
+    #           ${CMAKE_CURRENT_BINARY_DIR}/${_filename}.chkfmt
+    #   DEPENDS ${_filename}
+    #   WORKING_DIRECTORY ${CMAKE_SOURCE_DIR})
+    # list(APPEND _shell_chkfmtdeps
+    #      ${CMAKE_CURRENT_BINARY_DIR}/${_filename}.chkfmt)
+    # ~~~
   endforeach()
 
   if(_unknown_files)
@@ -362,54 +364,40 @@ function(format_and_lint module)
               " extension is not recognized: \n  ${filelist_}")
   endif()
 
-  file(WRITE ${CMAKE_CURRENT_BINARY_DIR}/${module}.lint-manifest "")
+  file(WRITE ${CMAKE_CURRENT_BINARY_DIR}/${slug}.lint-manifest "")
   foreach(listname_ _args_CC _args_CMAKE _args_JS _args_PY _args_SHELL)
     if(${listname_})
       string(REPLACE ";" "\n" filenames_ "${${listname_}}")
-      file(APPEND ${CMAKE_CURRENT_BINARY_DIR}/${module}.lint-manifest
+      file(APPEND ${CMAKE_CURRENT_BINARY_DIR}/${slug}.lint-manifest
            "${filenames_}\n")
     endif()
   endforeach()
 
   set(_slugs bzl cc cmake js py shell)
-  add_custom_target(lint-${module})
-  add_dependencies(lint lint-${module})
+  add_custom_target(lint-${slug})
+  add_dependencies(lint lint-${slug})
   foreach(_slug ${_slugs})
     if(_${_slug}_lintdeps)
-      add_custom_target(lint-${_slug}-${module} DEPENDS ${_${_slug}_lintdeps})
-      add_dependencies(lint-${module} lint-${_slug}-${module})
+      add_custom_target(lint-${_slug}-${slug} DEPENDS ${_${_slug}_lintdeps})
+      add_dependencies(lint-${slug} lint-${_slug}-${slug})
     endif()
   endforeach()
 
-  add_custom_target(format-${module})
-  add_dependencies(format format-${module})
+  add_custom_target(format-${slug})
+  add_dependencies(format format-${slug})
   foreach(_slug ${_slugs})
     if(_${_slug}_fmtdeps)
-      add_custom_target(format-${_slug}-${module} DEPENDS ${_${_slug}_fmtdeps})
-      add_dependencies(format-${module} format-${_slug}-${module})
+      add_custom_target(format-${_slug}-${slug} DEPENDS ${_${_slug}_fmtdeps})
+      add_dependencies(format-${slug} format-${_slug}-${slug})
     endif()
   endforeach()
 
-  add_custom_target(chkfmt-${module})
-  add_dependencies(chkfmt chkfmt-${module})
+  add_custom_target(chkfmt-${slug})
+  add_dependencies(chkfmt chkfmt-${slug})
   foreach(_slug ${_slugs})
     if(_${_slug}_chkfmtdeps)
-      add_custom_target(chkfmt-${_slug}-${module}
-                        DEPENDS ${_${_slug}_chkfmtdeps})
-      add_dependencies(chkfmt-${module} chkfmt-${_slug}-${module})
+      add_custom_target(chkfmt-${_slug}-${slug} DEPENDS ${_${_slug}_chkfmtdeps})
+      add_dependencies(chkfmt-${slug} chkfmt-${_slug}-${slug})
     endif()
   endforeach()
-
-  add_custom_target(
-    run.validate-${module}-lint-manifest
-    COMMAND python -Bm cmake.validate_lint_manifest ${CMAKE_CURRENT_SOURCE_DIR}
-            ${CMAKE_CURRENT_BINARY_DIR} --exclude ${_args_EXCLUDE}
-    DEPENDS ${CMAKE_SOURCE_DIR}/cmake/validate_lint_manifest.py
-    WORKING_DIRECTORY ${CMAKE_SOURCE_DIR})
-
-  add_test(
-    NAME validate-${module}-lint-manifest
-    COMMAND python -Bm cmake.validate_lint_manifest ${CMAKE_CURRENT_SOURCE_DIR}
-            ${CMAKE_CURRENT_BINARY_DIR} --exclude ${_args_EXCLUDE}
-    WORKING_DIRECTORY ${CMAKE_SOURCE_DIR})
 endfunction()

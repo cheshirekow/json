@@ -105,5 +105,7 @@ function(stage_files)
       DEPENDS ${_args_SOURCEDIR}/${_srcfile})
     list(APPEND _copyfiles ${_args_STAGE}/${_tgtfile})
   endforeach()
-  set(${_args_LIST} ${_copyfiles} PARENT_SCOPE)
+  set(${_args_LIST}
+      ${_copyfiles}
+      PARENT_SCOPE)
 endfunction()
