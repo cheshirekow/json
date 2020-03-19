@@ -14,13 +14,19 @@ before_install:
 - sudo apt-get -y install
     $(tr '\n' ' ' < apt-requirements-bionic.txt)
 - go get $(tr '\n' ' ' < go-requirements.txt)
-- npm install
 - pip install -r pip-requirements.txt
 
 script:
-- make all
-- make better-test
-- make lint
+- mkdir build-nrd
+- cd build-nrd
+- cmake -G Ninja
+  -DCMAKE_BUILD_TYPE=RelWithDebInfo
+  -DCMAKE_INSTALL_PREFIX=./install
+  ..
+- ninja
+- ninja install
+- ninja better-test
+- ninja lint
 
 env:
   global:
@@ -37,7 +43,13 @@ jobs:
         AND branch =~ ^((master)|(staging))$
     python: 3.6
     script:
-    - make push-json-github-pseudorelease-tag
+    - mkdir build-nrd
+    - cd build-nrd
+    - cmake -G Ninja
+      -DCMAKE_BUILD_TYPE=RelWithDebInfo
+      -DCMAKE_INSTALL_PREFIX=./install
+      ..
+    - ninja push-json-github-pseudorelease-tag
   - name: deploy-artifacts
     python: 3.6
     if: repo = cheshirekow/json
@@ -45,5 +57,11 @@ jobs:
         AND (tag =~ ^pseudo-((master)|(staging))$
              OR tag =~ ^v\d+\.\d+\.\d+)
     script:
-    - make push-json-github-release
-    - make push-json-rtd-repo
+    - mkdir build-nrd
+    - cd build-nrd
+    - cmake -G Ninja
+      -DCMAKE_BUILD_TYPE=RelWithDebInfo
+      -DCMAKE_INSTALL_PREFIX=./install
+      ..
+    - ninja push-json-github-release
+    - ninja push-json-rtd-repo

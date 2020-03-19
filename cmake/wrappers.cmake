@@ -109,7 +109,8 @@ function(check_call)
       list(GET _cmds ${_idx} _cmdstr)
       string(REPLACE "COMMAND%" "" _cmdstr "${_cmdstr}")
       string(REPLACE "%" " " _cmdstr "${_cmdstr}")
-      message(FATAL_ERROR " Failed to execute command ${_idx}:\n   ${_cmdstr}")
+      message(FATAL_ERROR " Failed to execute command ${_idx}:\n"
+                          "   ${_cmdstr}\n   ${_stderr}")
     endif()
     math(EXPR _idx "${_idx} + 1}")
   endforeach()
@@ -140,10 +141,9 @@ set(KNOWN_PROPERTIES ${_propslist})
 # Wraps add_library and provides additional keyword options that translate into
 # additional calls to target_link_libraries, target_set_properties, etc. Usage:
 # ~~~
-#   cc_binary(<target-name> [STATIC|SHARED]
+#   cc_library(<target-name> [STATIC|SHARED]
 #     SRCS src1.cc src2.cc src3.cc
-#     DEPS lib1 lib2 lib3
-#
+#     DEPS lib1 lib2 lib3)
 # ~~~
 #
 # Keyword Arguments:
@@ -181,8 +181,7 @@ endfunction()
 # ~~~
 #   cc_binary(<target-name>
 #     SRCS src1.cc src2.cc src3.cc
-#     DEPS lib1 lib2 lib3
-#
+#     DEPS lib1 lib2 lib3)
 # ~~~
 #
 # Keyword Arguments:

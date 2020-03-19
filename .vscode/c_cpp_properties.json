@@ -62,7 +62,7 @@
       "cStandard": "c11",
       "cppStandard": "c++17",
       "intelliSenseMode": "clang-x64",
-      "compileCommands": "${workspaceFolder}/.build/nd.x86/compile_commands.json"
+      "compileCommands": "${workspaceFolder}/.build/nr.x86/compile_commands.json"
     }
   ],
   "version": 4

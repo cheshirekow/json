@@ -3,22 +3,35 @@ project(tangentsky)
 enable_testing()
 set(CMAKE_EXPORT_COMPILE_COMMANDS TRUE)
 
+include(CMakePackageConfigHelpers)
 include(GNUInstallDirs)
-
-include(${CMAKE_SOURCE_DIR}/cmake/environment.cmake)
-include(${CMAKE_SOURCE_DIR}/cmake/codestyle.cmake)
-include(${CMAKE_SOURCE_DIR}/cmake/ctest_helpers.cmake)
-include(${CMAKE_SOURCE_DIR}/cmake/doctools.cmake)
-include(${CMAKE_SOURCE_DIR}/cmake/pkgconfig.cmake)
-include(${CMAKE_SOURCE_DIR}/cmake/wrappers.cmake)
-
-detect_buildenv()
-message("Detected sparse export: ${TANGENT_SPARSE_EXPORT}")
 
 if(NOT CMAKE_INSTALL_PREFIX)
   set(CMAKE_INSTALL_PREFIX
       ${CMAKE_BINARY_DIR}/install
       CACHE PATH "cmake installation directory")
+endif()
+
+find_package(Threads REQUIRED)
+find_package(fmt)
+
+# NOTE(josh): order matters
+set(_tangent_modules
+    environment.cmake
+    wrappers.cmake
+    codestyle.cmake
+    ctest_helpers.cmake
+    debian.cmake
+    doctools.cmake
+    pkgconfig.cmake
+    re2-config.cmake)
+foreach(_module ${_tangent_modules})
+  include(${CMAKE_SOURCE_DIR}/cmake/${_module})
+endforeach()
+
+detect_buildenv()
+if(TANGENT_SPARSE_EXPORT)
+  message(STATUS "Detected sparse export: ${TANGENT_SPARSE_EXPORT}")
 endif()
 
 if(NOT TANGENT_BUILD_CONTEXT)
@@ -27,7 +40,13 @@ if(NOT TANGENT_BUILD_CONTEXT)
       CACHE STRING "what is the context for the current build")
 endif()
 
-find_package(Threads REQUIRED)
+if(TANGENT_SPARSE_EXPORT OR TANGENT_IS_DEBIAN_BUILD)
+  # NOTE(josh): The order must be topological in dependency graph
+  foreach(_exportname libtangent-util libtangent-json argue)
+    find_package(${_exportname} QUIET CONFIG)
+  endforeach()
+endif()
+
 pkg_find(
   PKG eigen3
   PKG fontconfig
@@ -44,6 +63,7 @@ pkg_find(
   PKG libpng NAMES libpng12 libpng16
   PKG librtlsdr
   PKG libudev
+  PKG openssl
   PKG tinyxml2
   PKG vulkan
   PKG x11-xcb)
@@ -51,8 +71,6 @@ pkg_find(
 # TODO(josh): can we get rid of these with some interface libraries?
 include_directories(${CMAKE_SOURCE_DIR})
 include_directories(${CMAKE_SOURCE_DIR}/third_party/googletest/include)
-include_directories(${CMAKE_SOURCE_DIR}/third_party/re2)
-include_directories(${CMAKE_SOURCE_DIR}/third_party/fmt/include)
 include_directories(${CMAKE_SOURCE_DIR}/third_party/glm)
 
 set(CXX_STANDARD
@@ -75,6 +93,37 @@ set(CTEST_ENVIRONMENT "PYTHONPATH=${CMAKE_SOURCE_DIR}")
 # Will be populated by subdirectory listfiles with the dependencies of the
 # master sphinx build
 set_property(GLOBAL PROPERTY global_doc_files "")
+
+add_custom_command(
+  OUTPUT __always_rebuild
+  COMMAND cmake -E echo "" > /dev/null
+  COMMENT "Stubbing __always_rebuild")
+
+add_custom_target(
+  check-codestyle-manifest ALL
+  COMMAND
+    python -Bm tangent.tooling.generate_style_manifest #
+    --outfile ${CMAKE_BINARY_DIR}/codestyle_manifest.cmake #
+    --excludes-from ${CMAKE_SOURCE_DIR}/cmake/lint-excludes.txt #
+    -- ${CMAKE_SOURCE_DIR}
+  WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
+  DEPENDS __always_rebuild
+  COMMENT "Checking for changes in codestyle manifest")
+
+check_call(
+  COMMAND
+    python -Bm tangent.tooling.generate_style_manifest #
+    --outfile ${CMAKE_BINARY_DIR}/codestyle_manifest.cmake #
+    --excludes-from ${CMAKE_SOURCE_DIR}/cmake/lint-excludes.txt #
+    -- ${CMAKE_SOURCE_DIR}
+  WORKING_DIRECTORY ${CMAKE_SOURCE_DIR})
+
+# If the manifest changes, then we need to rerun cmake to import link/fmt rules
+# for the new manifest
+configure_file(${CMAKE_BINARY_DIR}/codestyle_manifest.cmake
+               ${CMAKE_BINARY_DIR}/codestyle_manifest.stamp COPYONLY)
+
+include(${CMAKE_BINARY_DIR}/codestyle_manifest.cmake)
 
 # NOTE(josh): search through the list of child directories and add any that
 # actually contain a listfile. While globs are evil, this is necessary for
@@ -112,7 +161,6 @@ if(EXISTS ${CMAKE_SOURCE_DIR}/doxy.config.in)
   add_custom_target(doxygen DEPENDS ${PROJECT_BINARY_DIR}/doxy.stamp)
   add_dependencies(doc doxygen)
 endif()
-
 
 add_custom_target(
   better-test

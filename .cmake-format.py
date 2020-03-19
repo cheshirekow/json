@@ -1,5 +1,6 @@
 with section("parse"):
   additional_commands = {
+    # Wrappers.cmake
     "cc_binary": {
       "pargs": "1+",
       "kwargs": {
@@ -9,6 +10,7 @@ with section("parse"):
           "PROPERTIES": {
             "kwargs": {
               "OUTPUT_NAME": 1,
+              "EXPORT_NAME": 1,
             }
           }
       }
@@ -24,7 +26,9 @@ with section("parse"):
             "kwargs": {
               "LIBRARY_OUTPUT_NAME": 1,
               "VERSION": 1,
-              "SOVERSION": 1
+              "SOVERSION": 1,
+              "EXPORT_NAME": 1,
+              "INTERFACE_INCLUDE_DIRECTORIES": 1,
             }
           }
       }
@@ -62,6 +66,8 @@ with section("parse"):
         "ERROR_STRIP_TRAILING_WHITESPACE",
       ]
     },
+
+    # debian.cmake
     "create_debian_binary_packages": {
       "pargs": [3, "+"],
       "kwargs": {
@@ -78,34 +84,43 @@ with section("parse"):
         "DEPS": "*"
       }
     },
+    "get_debs": {
+      "pargs": [3, "*"],
+    },
+
+    # pkgconfig.cmake
     "pkg_find": {
       "kwargs": {
         "PKG": "*"
       }
     },
-    "exportvars": {
-      "pargs": "1+",
-      "kwargs": {
-        "VARS": "+"
-      }
-    },
+
+    # codestyle.cmake
     "format_and_lint": {
       "kwargs": {
         "CC": "*",
-        "CCDEPENDS": "*",
         "CMAKE": "*",
         "PY": "*",
         "JS": "*",
-        "EXCLUDE": "*",
         "SHELL": "*"
       }
     },
+
+    # other:
     "importvars": {
       "pargs": "1+",
       "kwargs": {
         "VARS": "+"
       }
     },
+
+    "exportvars": {
+      "pargs": "1+",
+      "kwargs": {
+        "VARS": "+"
+      }
+    },
+
     "stage_files": {
       "kwargs": {
         "LIST": 1,

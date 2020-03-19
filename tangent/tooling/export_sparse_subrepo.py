@@ -23,7 +23,7 @@ def setup_argparser(argparser):
   argparser.add_argument(
       "command", choices=["update", "verify"],
       help="whether to update or verify the export")
-  argparser.add_argument("--force", action="store_true")
+  argparser.add_argument("--force")
 
 
 def get_argdict(args):
